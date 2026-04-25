@@ -240,6 +240,15 @@ CREATE TABLE IF NOT EXISTS announcement_reads (
     UNIQUE(announcement_id, user_id)
 );
 
+-- Хранилище загруженных файлов (фото заказов/инцидентов/уроков, дизайны).
+-- Railway-FS эфемерна, поэтому байты лежат прямо в БД.
+CREATE TABLE IF NOT EXISTS uploads (
+    filename    TEXT    PRIMARY KEY,
+    mime        TEXT    NOT NULL DEFAULT 'application/octet-stream',
+    data        BYTEA   NOT NULL,
+    created_at  TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS client_notifications (
     id            SERIAL PRIMARY KEY,
     order_id      INTEGER NOT NULL REFERENCES orders(id),

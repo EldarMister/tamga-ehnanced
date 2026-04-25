@@ -3,8 +3,17 @@ import express from 'express';
 import cors from 'cors';
 
 import { initDb } from './db.js';
+import { serveUpload } from './uploads.js';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
+import pricelistRoutes from './routes/pricelist.js';
+import inventoryRoutes from './routes/inventory.js';
+import orderRoutes from './routes/orders.js';
+import hrRoutes from './routes/hr.js';
+import payrollRoutes from './routes/payroll.js';
+import taskRoutes from './routes/tasks.js';
+import trainingRoutes from './routes/training.js';
+import leaveRoutes from './routes/leave_requests.js';
 
 const app = express();
 
@@ -20,6 +29,17 @@ app.get('/health', (req, res) => res.json({ ok: true, ts: Date.now() }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/pricelist', pricelistRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/hr', hrRoutes);
+app.use('/api/payroll', payrollRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/training', trainingRoutes);
+app.use('/api/leave-requests', leaveRoutes);
+
+// Отдача загруженных файлов из таблицы uploads.
+app.get('/api/uploads/:filename', serveUpload);
 
 // 404
 app.use('/api', (req, res) => res.status(404).json({ detail: 'Эндпоинт не найден' }));
