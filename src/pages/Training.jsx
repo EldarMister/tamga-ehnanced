@@ -3,7 +3,7 @@ import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { useModal } from '../components/Modal.jsx';
-import { roleLabel } from '../lib/utils.js';
+import { roleLabel, buildUploadUrl } from '../lib/utils.js';
 
 const getYouTubeId = (url) => {
   if (!url) return null;
@@ -102,7 +102,7 @@ export default function Training() {
           : items.map(item => {
             const ytId = getYouTubeId(item.youtube_url);
             const ytThumb = ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : '';
-            const photo = item.photo_file ? `/api/uploads/${item.photo_file}` : (item.photo_url || '');
+            const photo = item.photo_file ? buildUploadUrl(item.photo_file) : (item.photo_url || '');
             return (
               <div key={item.id} className="video-card card-hover">
                 {ytThumb && (

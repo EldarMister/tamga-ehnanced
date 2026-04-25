@@ -81,21 +81,23 @@ export function debounce(fn, ms = 300) {
   };
 }
 
+import { apiUrl } from './api.js';
+
 export function buildUploadUrl(fileRef) {
   if (!fileRef || typeof fileRef !== 'string') return '';
   let normalized = fileRef.trim().replace(/\\/g, '/');
   if (!normalized) return '';
   if (/^https?:\/\//i.test(normalized)) return normalized;
-  if (normalized.startsWith('/api/uploads/')) return normalized;
-  if (normalized.startsWith('api/uploads/')) return `/${normalized}`;
+  if (normalized.startsWith('/api/uploads/')) return apiUrl(normalized);
+  if (normalized.startsWith('api/uploads/')) return apiUrl(`/${normalized}`);
   if (/^uploads\//i.test(normalized)) normalized = normalized.replace(/^uploads\//i, '');
   if (/\/uploads\//i.test(normalized)) normalized = normalized.split(/\/uploads\//i).pop() || '';
-  if (normalized.startsWith('/')) return normalized;
+  if (normalized.startsWith('/')) return apiUrl(normalized);
   const encodedPath = normalized
     .split('/').filter(Boolean)
     .map(part => encodeURIComponent(part))
     .join('/');
-  return `/api/uploads/${encodedPath}`;
+  return apiUrl(`/api/uploads/${encodedPath}`);
 }
 
 let closeImageViewerFn = null;

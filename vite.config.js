@@ -47,5 +47,10 @@ export default defineConfig({
     proxy: {
       '/api': { target: BACKEND, changeOrigin: true }
     }
+  },
+  preview: {
+    host: true,
+    port: Number(process.env.PORT) || 4173,
+    allowedHosts: true
   }
 });

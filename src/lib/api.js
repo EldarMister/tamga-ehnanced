@@ -1,5 +1,12 @@
 import { getToken, clearAuthStorage } from './auth.jsx';
 
+const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
+export function apiUrl(path) {
+  if (!path) return path;
+  if (/^https?:\/\//i.test(path)) return path;
+  return API_BASE + (path.startsWith('/') ? path : `/${path}`);
+}
+
 const _cache = new Map();
 const CACHE_TTL = 15000;
 
@@ -38,7 +45,7 @@ async function request(method, path, body = null) {
   }
 
   try {
-    const res = await fetch(path, opts);
+    const res = await fetch(apiUrl(path), opts);
     if (res.status === 401) {
       clearAuthStorage();
       window.location.hash = '#/login';
@@ -69,7 +76,7 @@ async function uploadFile(path, file, fieldName = 'file') {
   const formData = new FormData();
   formData.append(fieldName, file);
   try {
-    const res = await fetch(path, { method: 'POST', headers, body: formData });
+    const res = await fetch(apiUrl(path), { method: 'POST', headers, body: formData });
     if (res.status === 401) {
       clearAuthStorage();
       window.location.hash = '#/login';
