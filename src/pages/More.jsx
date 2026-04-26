@@ -119,7 +119,9 @@ export default function More() {
     const elapsed = start ? fmtElapsed(now - start.getTime()) : '00:00:00';
     shiftCard = (
       <div className="more-shift-card more-shift-active" onClick={goToHr}>
-        <div className="more-shift-icon more-shift-icon-clock">🕐</div>
+        <div className="more-shift-icon more-shift-icon-clock">
+          <img src="/icons/clock.png" alt="" draggable={false} />
+        </div>
         <div className="more-shift-text">
           <div className="more-shift-title">
             {tr(lang,'Работаю','Иштеп жатам')}

@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/icon-192.png', 'icons/icon-512.png', 'icons/icon.svg', 'lang/ru.json', 'lang/ky.json'],
+      includeAssets: ['icons/icon-512.png', 'icons/clock.png', 'lang/ru.json', 'lang/ky.json'],
       manifest: {
         name: 'Тамга Сервис',
         short_name: 'Тамга',
@@ -22,8 +22,9 @@ export default defineConfig({
         background_color: '#0b1220',
         theme_color: '#1e40af',
         icons: [
-          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+          { src: 'icons/icon-512.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ]
       },
       workbox: {
