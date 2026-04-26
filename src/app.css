@@ -544,15 +544,16 @@ select.input {
 }
 
 /* ============ TAB BAR ============ */
+/* Тонкая синяя полоска сверху над активной вкладкой + синий цвет текста и иконки.
+   Никаких плашек/таблеток — чистый product-UI стиль. */
 #tab-bar {
     background: var(--bg-secondary);
     border-top: 1px solid var(--border);
     backdrop-filter: blur(8px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
 }
-
 #tab-bar > div {
-    height: 64px;
+    height: 60px;
     padding: 0 4px;
 }
 
@@ -561,48 +562,44 @@ select.input {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    padding: 6px 10px;
+    gap: 4px;
+    padding: 8px 4px;
     min-width: 56px;
     color: var(--text-tertiary);
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 500;
     text-decoration: none;
     cursor: pointer;
     transition: color 0.15s ease;
     -webkit-tap-highlight-color: transparent;
-    border-radius: 12px;
+    position: relative;
 }
 
-/* Иконка-плашка — серая по умолчанию, синяя у активной (как в современных iOS-приложениях) */
-.tab-item .tab-icon-pill {
-    width: 56px;
-    height: 32px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.18s ease;
-    background: transparent;
+/* Тонкая синяя полоска сверху у активной вкладки */
+.tab-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 2.5px;
+    background: var(--accent);
+    border-radius: 0 0 3px 3px;
 }
+
 .tab-item.active {
     color: var(--accent);
-}
-.tab-item.active .tab-icon-pill {
-    background: var(--accent-light, rgba(30, 64, 175, 0.12));
-}
-
-.tab-item:hover .tab-icon-pill {
-    background: var(--accent-light, rgba(30, 64, 175, 0.08));
+    font-weight: 600;
 }
 
 .tab-item svg {
-    width: 22px;
-    height: 22px;
-    stroke-width: 2;
-    transition: transform 0.18s ease;
+    width: 24px;
+    height: 24px;
+    stroke-width: 1.8;
+    transition: stroke-width 0.15s ease;
 }
-.tab-item.active svg { transform: scale(1.05); stroke-width: 2.2; }
+.tab-item.active svg { stroke-width: 2.2; }
 
 .tab-badge {
     position: absolute;
@@ -1807,14 +1804,17 @@ select.input {
     transform: translateY(0);
 }
 .menu-row-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 14px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 26px;
     flex-shrink: 0;
+}
+.menu-row-icon svg {
+    width: 22px;
+    height: 22px;
 }
 .menu-row-text { flex: 1; min-width: 0; }
 .menu-row-title {
@@ -1829,15 +1829,15 @@ select.input {
     line-height: 1.3;
 }
 
-/* Цветовые тона плашек — точно как на референсе */
-.menu-row-icon-amber  { background: #fef3c7; }
-.menu-row-icon-orange { background: #ffedd5; }
-.menu-row-icon-yellow { background: #fef9c3; }
-.menu-row-icon-green  { background: #dcfce7; }
-.menu-row-icon-mint   { background: #d1fae5; }
-.menu-row-icon-blue   { background: #dbeafe; }
-.menu-row-icon-pink   { background: #fce7f3; }
-.menu-row-icon-purple { background: #ede9fe; }
+/* Цветовые тона плашек: фон = пастельный, цвет иконки = насыщенный того же оттенка */
+.menu-row-icon-amber  { background: #fef3c7; color: #d97706; }
+.menu-row-icon-orange { background: #ffedd5; color: #ea580c; }
+.menu-row-icon-yellow { background: #fef9c3; color: #ca8a04; }
+.menu-row-icon-green  { background: #dcfce7; color: #16a34a; }
+.menu-row-icon-mint   { background: #d1fae5; color: #059669; }
+.menu-row-icon-blue   { background: #dbeafe; color: #2563eb; }
+.menu-row-icon-pink   { background: #fce7f3; color: #db2777; }
+.menu-row-icon-purple { background: #ede9fe; color: #7c3aed; }
 .menu-row-icon-dark   { background: #1f2937; color: #fff; }
 
 [data-theme="dark"] .menu-row-icon-amber  { background: rgba(251, 191, 36, 0.18); }

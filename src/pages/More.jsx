@@ -8,20 +8,34 @@ import { roleLabel } from '../lib/utils.js';
 
 const tr = (lang, ru, ky) => lang === 'ky' ? ky : ru;
 
+// Чистые SVG-иконки в стиле Heroicons (outline, stroke-width 1.8). Без emoji.
+const SVG = {
+  calculator: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8"/><circle cx="8.5" cy="12" r="0.5" fill="currentColor"/><circle cx="12" cy="12" r="0.5" fill="currentColor"/><circle cx="15.5" cy="12" r="0.5" fill="currentColor"/><circle cx="8.5" cy="16" r="0.5" fill="currentColor"/><circle cx="12" cy="16" r="0.5" fill="currentColor"/><circle cx="15.5" cy="16" r="0.5" fill="currentColor"/></svg>,
+  megaphone:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1Z"/><path d="M14 8a4 4 0 0 1 0 8"/><path d="M17 5a7 7 0 0 1 0 14"/></svg>,
+  check:      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m8 12 3 3 5-6"/></svg>,
+  pricetag:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9-9-9Z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>,
+  card:       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 15h3"/></svg>,
+  cash:       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M5 9v.01M19 15v.01"/></svg>,
+  clock:      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>,
+  health:     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4v5a4 4 0 0 0 4 4 4 4 0 0 0 4-4V4"/><path d="M5 4h2M11 4h2"/><path d="M9 13v3a4 4 0 0 0 4 4 4 4 0 0 0 4-4v-1.5"/><circle cx="17" cy="11" r="2"/></svg>,
+  users:      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  cap:        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/><path d="M22 10v6"/></svg>,
+};
+
 function getItems(role, lang) {
   const t = (ru, ky) => tr(lang, ru, ky);
-  // tone — цвет плашки под иконкой (точно как на референсном скриншоте)
+  // tone — цвет плашки под иконкой (точно как на референсе)
   const ALL = {
-    calculator:    { label: t('Калькулятор', 'Калькулятор'),       icon: '🧮', tone: 'amber',  path: '/calculator',       desc: t('Расчёт стоимости услуг', 'Кызматтардын баасын эсептөө') },
-    announcements: { label: t('Объявления', 'Жарнамалар'),         icon: '📢', tone: 'orange', path: '/announcements',    desc: t('Сообщения сотрудникам', 'Кызматкерлерге билдирүү') },
-    shiftChecklist:{ label: t('Чек-лист смены', 'Смена тизмеси'),  icon: '✅', tone: 'green',  path: '/shift-checklist',  desc: t('Настройка и контроль', 'Жөндөө жана көзөмөл') },
-    pricelist:     { label: t('Прайс-лист', 'Баа тизмеси'),        icon: '💰', tone: 'yellow', path: '/pricelist',        desc: t('Цены на услуги', 'Кызмат баалары') },
-    payroll:       { label: t('Зарплата', 'Айлык'),                icon: '💳', tone: 'blue',   path: '/payroll',          desc: t('Ежемесячный расчёт', 'Айлык эсеп') },
-    fines:         { label: t('Журнал штрафов', 'Айып журналы'),   icon: '💸', tone: 'mint',   path: '/fines',            desc: t('История удержаний', 'Кармоо тарыхы') },
-    workJournal:   { label: t('Журнал работы', 'Иш журналы'),      icon: '🕒', tone: 'pink',   path: '/work-journal',     desc: t('Часы, прогулы, KPI', 'Саат, келбей калуу, KPI') },
-    leave:         { label: t('Отпуск / Больничный', 'Эс алуу / Ооруу'), icon: '🩺', tone: 'blue', path: '/leave-requests', desc: t('Заявки и согласование', 'Сурамдар жана бекитүү') },
-    users:         { label: t('Сотрудники', 'Кызматкерлер'),       icon: '👥', tone: 'purple', path: '/users',            desc: t('Управление аккаунтами', 'Колдонуучуларды башкаруу') },
-    training:      { label: t('Уроки', 'Сабактар'),                icon: '🎓', tone: 'dark',   path: '/training',         desc: t('Видео и фото инструкции', 'Видео жана сүрөт нускама') },
+    calculator:    { label: t('Калькулятор', 'Калькулятор'),       svg: SVG.calculator, tone: 'amber',  path: '/calculator',       desc: t('Расчёт стоимости услуг', 'Кызматтардын баасын эсептөө') },
+    announcements: { label: t('Объявления', 'Жарнамалар'),         svg: SVG.megaphone,  tone: 'orange', path: '/announcements',    desc: t('Сообщения сотрудникам', 'Кызматкерлерге билдирүү') },
+    shiftChecklist:{ label: t('Чек-лист смены', 'Смена тизмеси'),  svg: SVG.check,      tone: 'green',  path: '/shift-checklist',  desc: t('Настройка и контроль', 'Жөндөө жана көзөмөл') },
+    pricelist:     { label: t('Прайс-лист', 'Баа тизмеси'),        svg: SVG.pricetag,   tone: 'yellow', path: '/pricelist',        desc: t('Цены на услуги', 'Кызмат баалары') },
+    payroll:       { label: t('Зарплата', 'Айлык'),                svg: SVG.card,       tone: 'blue',   path: '/payroll',          desc: t('Ежемесячный расчёт', 'Айлык эсеп') },
+    fines:         { label: t('Журнал штрафов', 'Айып журналы'),   svg: SVG.cash,       tone: 'mint',   path: '/fines',            desc: t('История удержаний', 'Кармоо тарыхы') },
+    workJournal:   { label: t('Журнал работы', 'Иш журналы'),      svg: SVG.clock,      tone: 'pink',   path: '/work-journal',     desc: t('Часы, прогулы, KPI', 'Саат, келбей калуу, KPI') },
+    leave:         { label: t('Отпуск / Больничный', 'Эс алуу / Ооруу'), svg: SVG.health, tone: 'blue', path: '/leave-requests', desc: t('Заявки и согласование', 'Сурамдар жана бекитүү') },
+    users:         { label: t('Сотрудники', 'Кызматкерлер'),       svg: SVG.users,      tone: 'purple', path: '/users',            desc: t('Управление аккаунтами', 'Колдонуучуларды башкаруу') },
+    training:      { label: t('Уроки', 'Сабактар'),                svg: SVG.cap,        tone: 'dark',   path: '/training',         desc: t('Видео и фото инструкции', 'Видео жана сүрөт нускама') },
   };
   if (role === 'director') return ['calculator','announcements','shiftChecklist','pricelist','payroll','fines','workJournal','leave','users','training'].map(k => ALL[k]);
   if (role === 'manager')  return ['calculator','announcements','pricelist','fines','workJournal','leave','training'].map(k => ALL[k]);
@@ -179,7 +193,7 @@ export default function More() {
         {/* Остальные пункты меню */}
         {items.map((it, i) => (
           <a key={i} className="menu-row" onClick={() => navigate(it.path)}>
-            <div className={`menu-row-icon menu-row-icon-${it.tone || 'blue'}`}>{it.icon}</div>
+            <div className={`menu-row-icon menu-row-icon-${it.tone || 'blue'}`}>{it.svg}</div>
             <div className="menu-row-text">
               <div className="menu-row-title">{it.label}</div>
               <div className="menu-row-desc">{it.desc}</div>
