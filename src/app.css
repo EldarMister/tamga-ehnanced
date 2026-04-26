@@ -3368,3 +3368,642 @@ html:not([data-theme="dark"]) body {
         min-width: 620px;
     }
 }
+
+/* ============ HR REFERENCE REDESIGN ============ */
+.hr-page {
+    width: 100vw;
+    max-width: none;
+    min-height: 100vh;
+    margin-left: calc(50% - 50vw);
+    padding: 0 35px calc(96px + env(safe-area-inset-bottom, 0px));
+    background:
+        radial-gradient(circle at 18% 4%, rgba(224, 235, 255, 0.72), transparent 28%),
+        radial-gradient(circle at 82% 18%, rgba(241, 247, 255, 0.8), transparent 30%),
+        #fbfcff;
+    color: #071327;
+}
+
+.hr-page-header {
+    min-height: 109px;
+    padding-top: 25px;
+}
+
+.hr-page-title {
+    margin: 0;
+    color: #0c1630;
+    font-size: 47px;
+    line-height: 1.08;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+}
+
+.hr-page-body {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.hr-section {
+    border: 1px solid #dce5f0;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 4px 18px rgba(14, 34, 68, 0.045);
+    padding: 32px 34px 28px;
+}
+
+.hr-shift-section {
+    min-height: 281px;
+}
+
+.hr-attendance-section {
+    min-height: 187px;
+}
+
+.hr-incidents-section {
+    min-height: 183px;
+}
+
+.hr-checklist-section {
+    padding-top: 28px;
+}
+
+.hr-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 6px;
+}
+
+.hr-section-title {
+    margin: 0 0 18px;
+    color: #5d7088;
+    font-size: 18px;
+    line-height: 24px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+}
+
+.hr-section-head .hr-section-title {
+    margin-bottom: 0;
+}
+
+.hr-loading-state {
+    min-height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hr-shift-state {
+    min-height: 170px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 26px;
+    text-align: center;
+}
+
+.hr-shift-note,
+.hr-shift-active-time,
+.hr-shift-done-range {
+    margin: 0;
+    color: #6980a0;
+    font-size: 22px;
+    line-height: 32px;
+    font-weight: 500;
+}
+
+.hr-shift-primary-btn,
+.hr-shift-secondary-btn {
+    min-width: 399px;
+    height: 76px;
+    border: none;
+    border-radius: 14px;
+    padding: 0 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    font-size: 23px;
+    line-height: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    cursor: pointer;
+}
+
+.hr-shift-primary-btn {
+    background: linear-gradient(135deg, #2f7cff 0%, #075ef5 100%);
+    color: #ffffff;
+    box-shadow: 0 16px 28px rgba(23, 105, 255, 0.22);
+}
+
+.hr-shift-secondary-btn {
+    background: linear-gradient(135deg, #2f7cff 0%, #075ef5 100%);
+    color: #ffffff;
+    box-shadow: 0 16px 28px rgba(23, 105, 255, 0.22);
+}
+
+.hr-shift-btn-icon {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hr-shift-btn-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.hr-shift-status-badge {
+    min-height: 34px;
+    padding: 0 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.hr-shift-status-live {
+    background: #e7f8ed;
+    color: #25a941;
+}
+
+.hr-shift-status-done {
+    background: #eef3f8;
+    color: #61738a;
+}
+
+.hr-empty-row {
+    min-height: 96px;
+    display: flex;
+    align-items: center;
+    gap: 26px;
+}
+
+.hr-empty-row-compact {
+    min-height: 72px;
+    justify-content: center;
+}
+
+.hr-empty-icon {
+    width: 72px;
+    height: 72px;
+    flex: 0 0 72px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #637997;
+    background: linear-gradient(180deg, #f4f8fd 0%, #eef3f9 100%);
+}
+
+.hr-empty-icon svg {
+    width: 38px;
+    height: 38px;
+}
+
+.hr-empty-text {
+    color: #6980a0;
+    font-size: 20px;
+    line-height: 30px;
+    font-weight: 500;
+}
+
+.hr-checklist-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.hr-checklist-item {
+    width: 100%;
+    border: 1px solid #e5ebf3;
+    border-radius: 14px;
+    background: #ffffff;
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.hr-checklist-item-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.hr-checklist-item-title {
+    display: block;
+    color: #071327;
+    font-size: 16px;
+    line-height: 22px;
+    font-weight: 700;
+}
+
+.hr-checklist-required {
+    display: inline-block;
+    margin-top: 4px;
+    color: #8a98aa;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+}
+
+.hr-people-list,
+.hr-incidents-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.hr-person-row {
+    min-height: 64px;
+    padding: 14px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    border-bottom: 1px solid #e8eef5;
+}
+
+.hr-person-row:last-child {
+    border-bottom: 0;
+}
+
+.hr-person-main {
+    min-width: 0;
+}
+
+.hr-person-name {
+    color: #071327;
+    font-size: 17px;
+    line-height: 22px;
+    font-weight: 700;
+}
+
+.hr-person-role {
+    margin-top: 3px;
+    color: #7f91a8;
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.hr-person-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    color: #61738a;
+    font-size: 15px;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+.hr-person-checkin {
+    color: #2daa47;
+}
+
+.hr-person-checkout {
+    color: #ef5148;
+}
+
+.hr-person-separator {
+    color: #8a98aa;
+}
+
+.hr-person-badge {
+    min-height: 28px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: #e7f8ed;
+    color: #2daa47;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 800;
+}
+
+.hr-outline-btn {
+    min-height: 56px;
+    padding: 0 28px;
+    border: 2px solid #5f97ff;
+    border-radius: 14px;
+    background: #ffffff;
+    color: #1769ff;
+    font-size: 20px;
+    line-height: 24px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.hr-incident-card {
+    padding: 18px 0;
+    border-bottom: 1px solid #e8eef5;
+}
+
+.hr-incident-card:last-child {
+    border-bottom: 0;
+}
+
+.hr-incident-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.hr-incident-title-wrap {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.hr-incident-type,
+.hr-incident-status {
+    min-height: 28px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 800;
+}
+
+.hr-incident-type-defect { background: #fdeceb; color: #df4a42; }
+.hr-incident-type-late { background: #fff4df; color: #e29613; }
+.hr-incident-type-complaint { background: #fff1ea; color: #d96d31; }
+.hr-incident-type-other { background: #eef3f8; color: #61738a; }
+
+.hr-incident-status.pending {
+    background: #fff4df;
+    color: #e29613;
+}
+
+.hr-incident-status.done {
+    background: #e7f8ed;
+    color: #25a941;
+}
+
+.hr-incident-employee {
+    color: #071327;
+    font-size: 15px;
+    line-height: 20px;
+    font-weight: 700;
+}
+
+.hr-incident-description {
+    margin: 10px 0 0;
+    color: #61738a;
+    font-size: 15px;
+    line-height: 22px;
+}
+
+.hr-incident-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 10px;
+    color: #d84d45;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 700;
+}
+
+.hr-incident-footer {
+    margin-top: 10px;
+    color: #8a98aa;
+    font-size: 12px;
+    line-height: 18px;
+    font-weight: 500;
+}
+
+body:has(.hr-page) .global-theme-toggle {
+    top: max(28px, env(safe-area-inset-top));
+    right: max(35px, env(safe-area-inset-right));
+}
+
+[data-theme="dark"] .hr-page {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .hr-section,
+[data-theme="dark"] .hr-checklist-item,
+[data-theme="dark"] .hr-outline-btn {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .hr-page-title,
+[data-theme="dark"] .hr-checklist-item-title,
+[data-theme="dark"] .hr-person-name,
+[data-theme="dark"] .hr-incident-employee {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .hr-section-title,
+[data-theme="dark"] .hr-empty-text,
+[data-theme="dark"] .hr-shift-note,
+[data-theme="dark"] .hr-shift-active-time,
+[data-theme="dark"] .hr-shift-done-range,
+[data-theme="dark"] .hr-person-role,
+[data-theme="dark"] .hr-incident-description,
+[data-theme="dark"] .hr-incident-footer {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .hr-empty-icon {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .hr-outline-btn {
+    color: #6ba2ff;
+    border-color: #4c85f5;
+}
+
+@media (max-width: 1024px) {
+    .hr-page {
+        width: auto;
+        margin-left: 0;
+        padding: 0 16px calc(92px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .hr-page-header {
+        min-height: 84px;
+        padding-top: 22px;
+        padding-right: 74px;
+    }
+
+    .hr-page-title {
+        font-size: 28px;
+        line-height: 1.14;
+    }
+
+    .hr-section {
+        min-height: 0;
+        padding: 24px 20px 22px;
+        border-radius: 16px;
+    }
+
+    .hr-shift-state {
+        min-height: 140px;
+        gap: 18px;
+    }
+
+    .hr-shift-note,
+    .hr-shift-active-time,
+    .hr-shift-done-range,
+    .hr-empty-text {
+        font-size: 17px;
+        line-height: 26px;
+    }
+
+    .hr-shift-primary-btn,
+    .hr-shift-secondary-btn {
+        min-width: 0;
+        width: 100%;
+        height: 64px;
+        padding: 0 20px;
+        font-size: 20px;
+        line-height: 24px;
+    }
+
+    .hr-outline-btn {
+        min-height: 48px;
+        padding: 0 20px;
+        font-size: 18px;
+        line-height: 22px;
+    }
+
+    .hr-person-row,
+    .hr-incident-head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .hr-person-meta {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 620px) {
+    .hr-page-header {
+        min-height: 76px;
+        padding-top: 20px;
+        padding-right: 74px;
+    }
+
+    .hr-page-title {
+        font-size: 25px;
+    }
+
+    .hr-page-body {
+        gap: 14px;
+    }
+
+    .hr-section {
+        padding: 20px 16px 18px;
+    }
+
+    .hr-section-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .hr-section-title {
+        margin-bottom: 14px;
+        font-size: 15px;
+        line-height: 21px;
+    }
+
+    .hr-empty-row {
+        min-height: 0;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .hr-empty-icon {
+        width: 54px;
+        height: 54px;
+        flex-basis: 54px;
+    }
+
+    .hr-empty-icon svg {
+        width: 28px;
+        height: 28px;
+    }
+
+    .hr-empty-text,
+    .hr-shift-note,
+    .hr-shift-active-time,
+    .hr-shift-done-range {
+        font-size: 15px;
+        line-height: 22px;
+    }
+
+    .hr-shift-state {
+        min-height: 0;
+        gap: 14px;
+    }
+
+    .hr-shift-primary-btn,
+    .hr-shift-secondary-btn {
+        height: 58px;
+        border-radius: 12px;
+        font-size: 18px;
+    }
+
+    .hr-shift-btn-icon {
+        width: 28px;
+        height: 28px;
+    }
+
+    .hr-checklist-item {
+        padding: 14px 14px;
+    }
+
+    .hr-person-row {
+        min-height: 0;
+        padding: 12px 0;
+        gap: 8px;
+    }
+
+    .hr-person-name,
+    .hr-incident-employee {
+        font-size: 15px;
+    }
+
+    .hr-person-meta,
+    .hr-incident-description,
+    .hr-incident-details {
+        font-size: 13px;
+        line-height: 19px;
+    }
+
+    .hr-outline-btn {
+        width: 100%;
+        justify-content: center;
+        min-height: 46px;
+        font-size: 17px;
+    }
+
+    body:has(.hr-page) .global-theme-toggle {
+        top: max(18px, env(safe-area-inset-top));
+        right: max(16px, env(safe-area-inset-right));
+    }
+}

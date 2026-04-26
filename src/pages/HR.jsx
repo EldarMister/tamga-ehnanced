@@ -6,7 +6,48 @@ import { useModal } from '../components/Modal.jsx';
 import { formatTime, formatDateTime, roleLabel } from '../lib/utils.js';
 import { useRealtime } from '../lib/useRealtime.js';
 
-const TYPE_LABELS = { defect: '🔴 Брак', late: '🟡 Опоздание', complaint: '🟠 Жалоба', other: '⚪ Прочее' };
+const TYPE_LABELS = {
+  defect: 'Брак',
+  late: 'Опоздание',
+  complaint: 'Жалоба',
+  other: 'Прочее',
+};
+
+const TYPE_CLASS = {
+  defect: 'hr-incident-type-defect',
+  late: 'hr-incident-type-late',
+  complaint: 'hr-incident-type-complaint',
+  other: 'hr-incident-type-other',
+};
+
+const SVG = {
+  clock: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.2" />
+      <path d="M12 7.5v5l3.5 3.5" />
+    </svg>
+  ),
+  users: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="9" cy="8.5" r="3.3" />
+      <path d="M3.5 19.5a5.8 5.8 0 0 1 11 0" />
+      <circle cx="17.5" cy="7.5" r="2.5" />
+      <path d="M16 13.5a5 5 0 0 1 4.5 3" />
+    </svg>
+  ),
+  shield: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3.8 18.8 6v5.5c0 4.2-2.8 7.9-6.8 8.9-4-1-6.8-4.7-6.8-8.9V6L12 3.8Z" />
+      <path d="M12 8.1v4.7" />
+      <circle cx="12" cy="16.1" r="0.65" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  check: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m5 12.8 4.5 4.4L19 7.8" />
+    </svg>
+  ),
+};
 
 export default function HR() {
   const { user, lang } = useAuth();
@@ -14,7 +55,7 @@ export default function HR() {
   const { showForm } = useModal();
   const isManager = ['director', 'manager'].includes(user.role);
 
-  const [attendance, setAttendance] = useState(undefined); // undefined=loading, null=none, object=present
+  const [attendance, setAttendance] = useState(undefined);
   const [shiftTasks, setShiftTasks] = useState(null);
   const [today, setToday] = useState(null);
   const [incidents, setIncidents] = useState(null);
@@ -24,51 +65,70 @@ export default function HR() {
       api.clearCache('/api/hr/my-attendance');
       const a = await api.get('/api/hr/my-attendance');
       setAttendance(a || null);
-    } catch { setAttendance(null); }
+    } catch {
+      setAttendance(null);
+    }
   }, []);
+
   const loadShiftTasks = useCallback(async () => {
     try {
       api.clearCache('/api/hr/shift-tasks');
       const tasks = await api.get('/api/hr/shift-tasks');
       setShiftTasks(tasks || []);
-    } catch { setShiftTasks([]); }
+    } catch {
+      setShiftTasks([]);
+    }
   }, []);
+
   const loadToday = useCallback(async () => {
     try {
       api.clearCache('/api/hr/attendance/today');
       const list = await api.get('/api/hr/attendance/today');
       setToday(list || []);
-    } catch { setToday([]); }
+    } catch {
+      setToday([]);
+    }
   }, []);
+
   const loadIncidents = useCallback(async () => {
     try {
       api.clearCache('/api/hr/incidents');
       const list = await api.get('/api/hr/incidents?status=pending');
       setIncidents(list || []);
-    } catch { setIncidents([]); }
+    } catch {
+      setIncidents([]);
+    }
   }, []);
 
   useEffect(() => {
     loadShift();
-    if (isManager) { loadToday(); loadIncidents(); }
+    if (isManager) {
+      loadToday();
+      loadIncidents();
+    }
   }, [isManager, loadShift, loadToday, loadIncidents]);
 
   useEffect(() => {
     if (attendance && !attendance.check_out) loadShiftTasks();
   }, [attendance, loadShiftTasks]);
 
-  // Real-time: ловим события прихода/ухода и инцидентов.
   useRealtime('hr:attendance', useCallback(() => {
     loadShift();
     if (isManager) loadToday();
   }, [loadShift, loadToday, isManager]));
+
   useRealtime('hr:incident', useCallback(() => {
     if (isManager) loadIncidents();
   }, [loadIncidents, isManager]));
 
   const checkin = async () => {
-    try { await api.post('/api/hr/checkin'); showToast('Смена начата!', 'success'); loadShift(); } catch {}
+    try {
+      await api.post('/api/hr/checkin');
+      showToast('Смена начата!', 'success');
+      loadShift();
+    } catch {}
   };
+
   const checkout = async () => {
     try {
       const result = await api.post('/api/hr/checkout');
@@ -81,8 +141,12 @@ export default function HR() {
       loadShift();
     } catch {}
   };
+
   const toggleShiftTask = async (id, completed) => {
-    try { await api.post(`/api/hr/shift-tasks/${id}/complete`, { completed: !completed }); loadShiftTasks(); } catch {}
+    try {
+      await api.post(`/api/hr/shift-tasks/${id}/complete`, { completed: !completed });
+      loadShiftTasks();
+    } catch {}
   };
 
   const showIncident = async () => {
@@ -92,13 +156,13 @@ export default function HR() {
     showForm({
       title: 'Новый инцидент',
       fields: [
-        { name: 'user_id', label: 'Сотрудник', type: 'select',
-          options: employees.map(u => ({ value: u.id, label: `${u.full_name} (${roleLabel(u.role, lang)})` })) },
-        { name: 'type', label: 'Тип', type: 'select',
-          options: [
-            { value: 'defect', label: 'Брак' }, { value: 'late', label: 'Опоздание' },
-            { value: 'complaint', label: 'Жалоба' }, { value: 'other', label: 'Прочее' },
-          ]},
+        { name: 'user_id', label: 'Сотрудник', type: 'select', options: employees.map(u => ({ value: u.id, label: `${u.full_name} (${roleLabel(u.role, lang)})` })) },
+        { name: 'type', label: 'Тип', type: 'select', options: [
+          { value: 'defect', label: 'Брак' },
+          { value: 'late', label: 'Опоздание' },
+          { value: 'complaint', label: 'Жалоба' },
+          { value: 'other', label: 'Прочее' },
+        ] },
         { name: 'description', label: 'Описание', type: 'textarea', required: true, placeholder: 'Что произошло...' },
         { name: 'material_waste', label: 'Потеря материала (м²)', type: 'number', step: '0.1', placeholder: 'Только для брака' },
         { name: 'deduction_amount', label: 'Штраф (сумма)', type: 'number', step: '100', placeholder: '0' },
@@ -107,7 +171,7 @@ export default function HR() {
       onSubmit: async (data) => {
         try {
           await api.post('/api/hr/incidents', {
-            user_id: parseInt(data.user_id),
+            user_id: parseInt(data.user_id, 10),
             type: data.type,
             description: data.description,
             material_waste: data.material_waste ? parseFloat(data.material_waste) : null,
@@ -120,100 +184,157 @@ export default function HR() {
     });
   };
 
-  return (
-    <>
-      <div className="page-header"><h1 className="page-title">Кадры</h1><div></div></div>
-      <div className="px-4 space-y-4 pb-8">
-        <div className="card">
-          <h3 className="text-sm font-bold text-gray-400 uppercase mb-3">Моя смена</h3>
-          <div className="text-center py-4">
-            {attendance === undefined ? <div className="spinner mx-auto"></div>
-              : attendance === null ? (
-                <>
-                  <p className="text-gray-500 mb-4">Вы ещё не отметились</p>
-                  <button className="btn btn-success btn-lg btn-block" style={{ minHeight: 80, fontSize: 20 }} onClick={checkin}>☀️ Начать смену</button>
-                </>
-              ) : !attendance.check_out ? (
-                <>
-                  <div className="text-green-600 font-bold text-lg mb-1">На смене</div>
-                  <div className="text-gray-500 mb-4">Приход: {formatTime(attendance.check_in, lang)}</div>
-                  <button className="btn btn-warning btn-lg btn-block" style={{ minHeight: 80, fontSize: 20 }} onClick={checkout}>🌙 Закончить смену</button>
-                </>
-              ) : (
-                <>
-                  <div className="text-gray-600 font-bold text-lg mb-1">Смена завершена</div>
-                  <div className="text-gray-400">Приход: {formatTime(attendance.check_in, lang)} — Уход: {formatTime(attendance.check_out, lang)}</div>
-                </>
-              )}
-          </div>
-        </div>
+  const isShiftActive = Boolean(attendance && !attendance.check_out);
+  const isShiftClosed = Boolean(attendance && attendance.check_out);
 
-        {attendance && !attendance.check_out && (
-          <div className="card">
-            <h3 className="text-sm font-bold text-gray-400 uppercase mb-3">Чек-лист перед уходом</h3>
-            {shiftTasks === null ? <div className="spinner mx-auto"></div>
-              : shiftTasks.length === 0 ? <p className="text-gray-400 text-sm">Нет задач для роли</p>
-              : shiftTasks.map(t => (
-                <div key={t.id} className="task-item" onClick={() => toggleShiftTask(t.id, t.completed)}>
-                  <div className={`task-checkbox ${t.completed ? 'checked' : ''}`}></div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600 }} className={t.completed ? 'task-done' : ''}>{t.title}</div>
-                    {t.is_required && <div className="text-xs text-gray-400">Обязательная</div>}
-                  </div>
-                </div>
-              ))}
-          </div>
+  return (
+    <main className="hr-page slide-up">
+      <header className="hr-page-header">
+        <h1 className="hr-page-title">Кадры</h1>
+      </header>
+
+      <div className="hr-page-body">
+        <section className="hr-section hr-shift-section">
+          <h2 className="hr-section-title">Моя смена</h2>
+
+          {attendance === undefined && (
+            <div className="hr-shift-state hr-loading-state">
+              <div className="spinner"></div>
+            </div>
+          )}
+
+          {attendance === null && (
+            <div className="hr-shift-state hr-shift-empty-state">
+              <p className="hr-shift-note">Вы ещё не отметились</p>
+              <button className="hr-shift-primary-btn" onClick={checkin}>
+                <span className="hr-shift-btn-icon">{SVG.clock}</span>
+                Начать смену
+              </button>
+            </div>
+          )}
+
+          {isShiftActive && (
+            <div className="hr-shift-state hr-shift-active-state">
+              <div className="hr-shift-status-badge hr-shift-status-live">На смене</div>
+              <div className="hr-shift-active-time">Приход: {formatTime(attendance.check_in, lang)}</div>
+              <button className="hr-shift-secondary-btn" onClick={checkout}>
+                <span className="hr-shift-btn-icon">{SVG.check}</span>
+                Закончить смену
+              </button>
+            </div>
+          )}
+
+          {isShiftClosed && (
+            <div className="hr-shift-state hr-shift-done-state">
+              <div className="hr-shift-status-badge hr-shift-status-done">Смена завершена</div>
+              <div className="hr-shift-done-range">
+                Приход: {formatTime(attendance.check_in, lang)} — Уход: {formatTime(attendance.check_out, lang)}
+              </div>
+            </div>
+          )}
+        </section>
+
+        {isShiftActive && (
+          <section className="hr-section hr-checklist-section">
+            <h2 className="hr-section-title">Чек-лист перед уходом</h2>
+            {shiftTasks === null ? (
+              <div className="hr-loading-state"><div className="spinner"></div></div>
+            ) : shiftTasks.length === 0 ? (
+              <div className="hr-empty-row hr-empty-row-compact">
+                <div className="hr-empty-text">Нет задач для роли</div>
+              </div>
+            ) : (
+              <div className="hr-checklist-list">
+                {shiftTasks.map(t => (
+                  <button key={t.id} className="hr-checklist-item" onClick={() => toggleShiftTask(t.id, t.completed)}>
+                    <span className={`task-checkbox ${t.completed ? 'checked' : ''}`}></span>
+                    <span className="hr-checklist-item-main">
+                      <span className={`hr-checklist-item-title ${t.completed ? 'task-done' : ''}`}>{t.title}</span>
+                      {t.is_required && <span className="hr-checklist-required">Обязательная</span>}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
         )}
 
         {isManager && (
-          <>
-            <div className="card">
-              <h3 className="text-sm font-bold text-gray-400 uppercase mb-3">Сегодня на работе</h3>
-              {today === null ? <div className="spinner mx-auto"></div>
-                : today.length === 0 ? <p className="text-gray-400 text-sm">Никто ещё не отметился</p>
-                : today.map(a => (
-                  <div key={a.id || a.user_id} className="flex items-center justify-between py-2 border-b last:border-0">
-                    <div>
-                      <span className="font-medium">{a.full_name}</span>
-                      <span className="text-xs text-gray-400 ml-2">{roleLabel(a.role, lang)}</span>
+          <section className="hr-section hr-attendance-section">
+            <h2 className="hr-section-title">Сегодня на работе</h2>
+            {today === null ? (
+              <div className="hr-loading-state"><div className="spinner"></div></div>
+            ) : today.length === 0 ? (
+              <div className="hr-empty-row">
+                <div className="hr-empty-icon">{SVG.users}</div>
+                <div className="hr-empty-text">Никто ещё не отметился</div>
+              </div>
+            ) : (
+              <div className="hr-people-list">
+                {today.map(a => (
+                  <div key={a.id || a.user_id} className="hr-person-row">
+                    <div className="hr-person-main">
+                      <div className="hr-person-name">{a.full_name}</div>
+                      <div className="hr-person-role">{roleLabel(a.role, lang)}</div>
                     </div>
-                    <div className="text-sm">
-                      <span className="text-green-600">{formatTime(a.check_in, lang)}</span>
-                      {a.check_out ? <><span className="text-gray-400"> — </span><span className="text-red-500">{formatTime(a.check_out, lang)}</span></>
-                                   : <span className="badge bg-green-100 text-green-700 ml-2">на месте</span>}
+                    <div className="hr-person-meta">
+                      <span className="hr-person-checkin">{formatTime(a.check_in, lang)}</span>
+                      {a.check_out ? (
+                        <>
+                          <span className="hr-person-separator">—</span>
+                          <span className="hr-person-checkout">{formatTime(a.check_out, lang)}</span>
+                        </>
+                      ) : (
+                        <span className="hr-person-badge">на месте</span>
+                      )}
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {isManager && (
+          <section className="hr-section hr-incidents-section">
+            <div className="hr-section-head">
+              <h2 className="hr-section-title">Инциденты</h2>
+              <button className="hr-outline-btn" onClick={showIncident}>+ Инцидент</button>
             </div>
 
-            <div className="card">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-gray-400 uppercase">Инциденты</h3>
-                <button className="btn btn-danger btn-sm" onClick={showIncident}>+ Инцидент</button>
+            {incidents === null ? (
+              <div className="hr-loading-state"><div className="spinner"></div></div>
+            ) : incidents.length === 0 ? (
+              <div className="hr-empty-row">
+                <div className="hr-empty-icon">{SVG.shield}</div>
+                <div className="hr-empty-text">Нет открытых инцидентов</div>
               </div>
-              {incidents === null ? <div className="spinner mx-auto"></div>
-                : incidents.length === 0 ? <p className="text-gray-400 text-sm">Нет открытых инцидентов</p>
-                : incidents.map(i => (
-                  <div key={i.id} className="py-3 border-b last:border-0">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <span className="font-medium">{TYPE_LABELS[i.type] || i.type}</span>
-                        <span className="text-gray-500 ml-2">— {i.employee_name}</span>
+            ) : (
+              <div className="hr-incidents-list">
+                {incidents.map(i => (
+                  <article key={i.id} className="hr-incident-card">
+                    <div className="hr-incident-head">
+                      <div className="hr-incident-title-wrap">
+                        <span className={`hr-incident-type ${TYPE_CLASS[i.type] || TYPE_CLASS.other}`}>{TYPE_LABELS[i.type] || i.type}</span>
+                        <span className="hr-incident-employee">{i.employee_name}</span>
                       </div>
-                      {i.status === 'pending'
-                        ? <span className="badge bg-yellow-100 text-yellow-700">Ожидает</span>
-                        : <span className="badge bg-green-100 text-green-700">Обсуждён</span>}
+                      <span className={`hr-incident-status ${i.status === 'pending' ? 'pending' : 'done'}`}>
+                        {i.status === 'pending' ? 'Ожидает' : 'Обсуждён'}
+                      </span>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">{i.description}</p>
-                    {i.material_waste && <p className="text-sm text-red-500">Потеря материала: {i.material_waste} м²</p>}
-                    {i.deduction_amount && <p className="text-sm text-red-600">Штраф: {i.deduction_amount}</p>}
-                    <div className="text-xs text-gray-400 mt-1">{formatDateTime(i.created_at, lang)} • {i.created_by_name}</div>
-                  </div>
+                    <p className="hr-incident-description">{i.description}</p>
+                    <div className="hr-incident-details">
+                      {i.material_waste ? <span>Потеря материала: {i.material_waste} м²</span> : null}
+                      {i.deduction_amount ? <span>Штраф: {i.deduction_amount}</span> : null}
+                    </div>
+                    <div className="hr-incident-footer">{formatDateTime(i.created_at, lang)} • {i.created_by_name}</div>
+                  </article>
                 ))}
-            </div>
-          </>
+              </div>
+            )}
+          </section>
         )}
       </div>
-    </>
+    </main>
   );
 }
