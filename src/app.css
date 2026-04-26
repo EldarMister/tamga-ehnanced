@@ -296,6 +296,10 @@ body::-webkit-scrollbar {
     overflow-x: visible;
 }
 
+#app:has(.hr-page) {
+    overflow-x: visible;
+}
+
 /* ============ BUTTONS ============ */
 .btn {
     display: inline-flex;
