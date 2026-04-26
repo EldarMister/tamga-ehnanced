@@ -3,12 +3,37 @@ import { all, exec } from './db.js';
 
 const vapidPublicKey = String(process.env.VAPID_PUBLIC_KEY || '').trim();
 const vapidPrivateKey = String(process.env.VAPID_PRIVATE_KEY || '').trim();
-const vapidSubject = String(process.env.VAPID_SUBJECT || '').trim();
-const pushEnabled = !!(vapidPublicKey && vapidPrivateKey && vapidSubject);
+const rawVapidSubject = String(process.env.VAPID_SUBJECT || '').trim();
+
+function normalizeVapidSubject(subject) {
+  const value = String(subject || '').trim();
+  if (!value) return '';
+  if (/^mailto:/i.test(value)) return value;
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return `mailto:${value}`;
+
+  try {
+    // web-push accepts a URL or a mailto: URL as the VAPID subject.
+    new URL(value);
+    return value;
+  } catch {
+    return '';
+  }
+}
+
+const vapidSubject = normalizeVapidSubject(rawVapidSubject);
+let pushEnabled = !!(vapidPublicKey && vapidPrivateKey && vapidSubject);
 
 if (pushEnabled) {
-  webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+  try {
+    webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+  } catch (error) {
+    pushEnabled = false;
+    console.warn('[push] Invalid VAPID configuration, web push disabled:', error?.message || error);
+  }
 } else {
+  if (rawVapidSubject && !vapidSubject) {
+    console.warn('[push] Invalid VAPID_SUBJECT, expected URL or email, web push disabled');
+  }
   console.warn('[push] VAPID is not configured, web push disabled');
 }
 
