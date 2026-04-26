@@ -921,8 +921,8 @@ select.input {
     transition: opacity var(--transition);
 }
 
-.theme-toggle-sun { left: 5px; }
-.theme-toggle-moon { right: 6px; }
+.theme-toggle-sun { left: 4px; }
+.theme-toggle-moon { right: 4px; }
 
 .global-theme-toggle {
     position: fixed;
@@ -2587,12 +2587,12 @@ html:not([data-theme="dark"]) body {
 }
 
 .theme-toggle-sun {
-    left: 7px;
+    left: 6px;
     color: #fff;
 }
 
 .theme-toggle-moon {
-    right: 6px;
+    right: 4px;
     color: #334d71;
 }
 
@@ -3928,6 +3928,16 @@ html:not([data-theme="dark"]) body {
     font-weight: 500;
 }
 
+.hr-shift-timer {
+    margin: -4px 0 0;
+    color: #132546;
+    font-size: 44px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+}
+
 .hr-shift-primary-btn,
 .hr-shift-secondary-btn {
     min-width: 330px;
@@ -4261,6 +4271,7 @@ body:has(.hr-page) .global-theme-toggle {
 }
 
 [data-theme="dark"] .hr-page-title,
+[data-theme="dark"] .hr-shift-timer,
 [data-theme="dark"] .hr-checklist-item-title,
 [data-theme="dark"] .hr-person-name,
 [data-theme="dark"] .hr-incident-employee {
@@ -4406,6 +4417,10 @@ body:has(.hr-page) .global-theme-toggle {
     .hr-shift-done-range {
         font-size: 15px;
         line-height: 22px;
+    }
+
+    .hr-shift-timer {
+        font-size: 34px;
     }
 
     .hr-shift-state {

@@ -49,6 +49,24 @@ const SVG = {
   ),
 };
 
+function fmtElapsed(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = String(Math.floor(total / 3600)).padStart(2, '0');
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
+  const s = String(total % 60).padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
+
+function parseTs(value) {
+  if (!value) return null;
+  let raw = String(value).trim().replace(' ', 'T');
+  raw = raw.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+  raw = raw.replace(/([+-]\d{2})$/, '$1:00');
+  if (!/[Zz]$|[+-]\d{2}:\d{2}$/.test(raw)) raw += 'Z';
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export default function HR() {
   const { user, lang } = useAuth();
   const showToast = useToast();
@@ -59,6 +77,7 @@ export default function HR() {
   const [shiftTasks, setShiftTasks] = useState(null);
   const [today, setToday] = useState(null);
   const [incidents, setIncidents] = useState(null);
+  const [now, setNow] = useState(Date.now());
 
   const loadShift = useCallback(async () => {
     try {
@@ -111,6 +130,12 @@ export default function HR() {
   useEffect(() => {
     if (attendance && !attendance.check_out) loadShiftTasks();
   }, [attendance, loadShiftTasks]);
+
+  useEffect(() => {
+    if (!attendance || attendance.check_out) return undefined;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [attendance]);
 
   useRealtime('hr:attendance', useCallback(() => {
     loadShift();
@@ -186,6 +211,8 @@ export default function HR() {
 
   const isShiftActive = Boolean(attendance && !attendance.check_out);
   const isShiftClosed = Boolean(attendance && attendance.check_out);
+  const shiftStartedAt = isShiftActive ? parseTs(attendance?.check_in) : null;
+  const shiftElapsed = shiftStartedAt ? fmtElapsed(now - shiftStartedAt.getTime()) : '00:00:00';
 
   return (
     <main className="hr-page slide-up">
@@ -216,6 +243,7 @@ export default function HR() {
           {isShiftActive && (
             <div className="hr-shift-state hr-shift-active-state">
               <div className="hr-shift-status-badge hr-shift-status-live">На смене</div>
+              <div className="hr-shift-timer">{shiftElapsed}</div>
               <div className="hr-shift-active-time">Приход: {formatTime(attendance.check_in, lang)}</div>
               <button className="hr-shift-secondary-btn" onClick={checkout}>
                 <span className="hr-shift-btn-icon">{SVG.check}</span>

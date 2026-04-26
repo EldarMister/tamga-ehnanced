@@ -629,7 +629,6 @@ export default function OrderDetail() {
                   </button>
                 ) : null}
 
-                {summaryUploadAction}
               </div>
             </section>
           </aside>
