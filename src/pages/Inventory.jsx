@@ -271,7 +271,7 @@ function MaterialRow({ m, canManage, onReceive, onCorrect, onLedger }) {
   const available = Math.max(0, (m.quantity || 0) - (m.reserved || 0));
   const { svg, tone } = materialIcon(m.code);
   return (
-    <div className={`inv-row inv-row-${status}`}>
+    <div className={`inv-row inv-row-${status}${canManage ? '' : ' inv-row-no-actions'}`}>
       <div className={`inv-row-icon inv-row-icon-${tone}`}>{svg}</div>
 
       <div className="inv-row-name">
