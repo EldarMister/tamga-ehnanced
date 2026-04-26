@@ -9,7 +9,33 @@ import { ToastProvider } from './components/Toast.jsx';
 import { ModalProvider } from './components/Modal.jsx';
 import './app.css';
 
-registerSW({ immediate: true });
+let reloadingForServiceWorker = false;
+const updateSW = registerSW({
+  immediate: true,
+  onRegisteredSW(_swUrl, registration) {
+    if (!registration) return;
+
+    const checkForUpdate = () => registration.update().catch(() => {});
+    checkForUpdate();
+
+    const intervalId = window.setInterval(checkForUpdate, 60 * 1000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') checkForUpdate();
+    });
+    window.addEventListener('beforeunload', () => window.clearInterval(intervalId), { once: true });
+  },
+  onNeedRefresh() {
+    updateSW(true);
+  },
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloadingForServiceWorker) return;
+    reloadingForServiceWorker = true;
+    window.location.reload();
+  });
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

@@ -18,7 +18,17 @@ registerRoute(
   }),
 );
 
-const navigationHandler = createHandlerBoundToURL('/index.html');
+const offlineNavigationHandler = createHandlerBoundToURL('/index.html');
+const navigationHandler = async ({ event }) => {
+  try {
+    const freshRequest = new Request(event.request, { cache: 'no-store' });
+    const response = await fetch(freshRequest);
+    if (response && response.ok) return response;
+  } catch {
+    // Fall back to the cached app shell when offline.
+  }
+  return offlineNavigationHandler({ event });
+};
 registerRoute(new NavigationRoute(navigationHandler, {
   denylist: [/^\/api\//],
 }));
