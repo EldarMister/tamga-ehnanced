@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { one, all, exec } from '../db.js';
 import { authRequired, roleRequired } from '../auth.js';
 import { broadcast } from '../realtime.js';
+import { sendPushToUser } from '../push.js';
 
 const router = Router();
 
@@ -121,6 +122,13 @@ router.patch('/:id/status', authRequired, roleRequired('director', 'manager'), a
   );
   const updated = await one(`${SELECT_LEAVE} WHERE lr.id = ?`, [id]);
   broadcast('leave:changed', { id, action: 'review', status: newStatus });
+  await sendPushToUser(row.user_id, {
+    title: 'Заявка на отпуск',
+    body: newStatus === 'approved' ? 'Ваша заявка одобрена' : 'Ваша заявка отклонена',
+    url: '/#/leave-requests',
+    tag: `leave-${id}`,
+    kind: 'leave',
+  });
   res.json(updated);
 });
 

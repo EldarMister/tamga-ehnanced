@@ -8,6 +8,9 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
       includeAssets: ['icons/icon-512.png', 'icons/clock.png', 'lang/ru.json', 'lang/ky.json'],
       manifest: {
@@ -27,19 +30,8 @@ export default defineConfig({
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ]
       },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,png,svg,json}'],
-        runtimeCaching: [
-          {
-            urlPattern: /\/api\/.*/,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              networkTimeoutSeconds: 5,
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 }
-            }
-          }
-        ]
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,png,svg,json,webmanifest}'],
       }
     })
   ],

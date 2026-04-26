@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { useModal } from '../components/Modal.jsx';
 import { roleLabel } from '../lib/utils.js';
+import { getPushConfig, isPushSupported, subscribeToPush, unsubscribeFromPush } from '../lib/push.js';
 
 const tr = (lang, ru, ky) => lang === 'ky' ? ky : ru;
 
@@ -13,6 +15,30 @@ export default function Profile() {
   const { showForm } = useModal();
   const navigate = useNavigate();
   const isDirector = user.role === 'director';
+  const [pushState, setPushState] = useState({
+    loading: true,
+    supported: isPushSupported(),
+    enabled: false,
+    permission: 'default',
+    subscribed: false,
+  });
+
+  const loadPushState = async () => {
+    if (!isPushSupported()) {
+      setPushState({ loading: false, supported: false, enabled: false, permission: 'unsupported', subscribed: false });
+      return;
+    }
+    try {
+      const info = await getPushConfig();
+      setPushState({ loading: false, ...info });
+    } catch {
+      setPushState((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
+  useEffect(() => {
+    loadPushState();
+  }, []);
 
   const switchLang = async (newLang) => {
     try {
@@ -59,6 +85,34 @@ export default function Profile() {
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
+  const enablePush = async () => {
+    try {
+      await subscribeToPush();
+      await loadPushState();
+      showToast(tr(lang, 'Уведомления включены', 'Билдирмелер күйгүзүлдү'), 'success');
+    } catch (e) {
+      showToast(e.message || tr(lang, 'Не удалось включить уведомления', 'Билдирмелерди күйгүзүү ишке ашкан жок'), 'error');
+      await loadPushState();
+    }
+  };
+
+  const disablePush = async () => {
+    try {
+      await unsubscribeFromPush();
+      await loadPushState();
+      showToast(tr(lang, 'Уведомления отключены', 'Билдирмелер өчүрүлдү'), 'success');
+    } catch (e) {
+      showToast(e.message || tr(lang, 'Не удалось отключить уведомления', 'Билдирмелерди өчүрүү ишке ашкан жок'), 'error');
+    }
+  };
+
+  let pushStatus = tr(lang, 'Проверка…', 'Текшерилип жатат…');
+  if (!pushState.supported) pushStatus = tr(lang, 'Этот браузер не поддерживает push-уведомления', 'Бул браузер push-билдирмелерди колдобойт');
+  else if (!pushState.enabled) pushStatus = tr(lang, 'Сервер push-уведомлений ещё не настроен', 'Push-сервер али жөндөлө элек');
+  else if (pushState.permission === 'denied') pushStatus = tr(lang, 'Разрешение браузера запрещено. Включите уведомления в настройках сайта.', 'Браузер уруксатты тыйып койгон. Сайттын жөндөөлөрүнөн күйгүзүңүз.');
+  else if (pushState.subscribed) pushStatus = tr(lang, 'Уведомления будут приходить даже при закрытом сайте', 'Сайт жабык болсо да билдирмелер келип турат');
+  else pushStatus = tr(lang, 'Нажмите кнопку ниже, чтобы получать уведомления на телефон и компьютер', 'Телефонго жана компьютерге билдирме алуу үчүн төмөнкү баскычты басыңыз');
+
   return (
     <>
       <div className="page-header">
@@ -88,6 +142,31 @@ export default function Profile() {
             <button className={`btn flex-1 ${lang === 'ru' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => switchLang('ru')}>Русский</button>
             <button className={`btn flex-1 ${lang === 'ky' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => switchLang('ky')}>Кыргызча</button>
           </div>
+        </div>
+
+        <div className="card">
+          <h3 className="text-sm font-bold text-gray-400 uppercase mb-3">
+            {tr(lang, 'Push-уведомления', 'Push-билдирмелер')}
+          </h3>
+          <div className="text-sm text-gray-500 mb-3">{pushStatus}</div>
+          <div className="text-xs text-gray-400 mb-3">
+            {tr(
+              lang,
+              'Для звука разрешите уведомления для сайта в браузере и системе.',
+              'Үн чыгышы үчүн браузерде жана тутумда сайттын билдирмелерине уруксат бериңиз.'
+            )}
+          </div>
+          {pushState.supported && pushState.enabled && pushState.permission !== 'denied' && (
+            <button
+              className={`btn btn-block ${pushState.subscribed ? 'btn-secondary' : 'btn-primary'}`}
+              onClick={pushState.subscribed ? disablePush : enablePush}
+              disabled={pushState.loading}
+            >
+              {pushState.subscribed
+                ? tr(lang, 'Отключить уведомления', 'Билдирмелерди өчүрүү')
+                : tr(lang, 'Включить уведомления', 'Билдирмелерди күйгүзүү')}
+            </button>
+          )}
         </div>
 
         <button className="btn btn-secondary btn-block" onClick={() => navigate('/training')}>{tr(lang, 'Уроки', 'Сабактар')}</button>

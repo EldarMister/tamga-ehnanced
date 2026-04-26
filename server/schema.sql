@@ -259,6 +259,16 @@ CREATE TABLE IF NOT EXISTS client_notifications (
     sent_at       TEXT
 );
 
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id             SERIAL PRIMARY KEY,
+    user_id        INTEGER NOT NULL REFERENCES users(id),
+    endpoint       TEXT    NOT NULL UNIQUE,
+    subscription   TEXT    NOT NULL,
+    user_agent     TEXT,
+    created_at     TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
 CREATE INDEX IF NOT EXISTS idx_orders_assigned_designer ON orders(assigned_designer);
@@ -276,3 +286,4 @@ CREATE INDEX IF NOT EXISTS idx_leave_requests_user_dates ON leave_requests(user_
 CREATE INDEX IF NOT EXISTS idx_leave_requests_status_dates ON leave_requests(status, date_start, date_end);
 CREATE INDEX IF NOT EXISTS idx_leave_requests_created_at ON leave_requests(created_at);
 CREATE INDEX IF NOT EXISTS idx_tasks_done_at_assigned ON tasks(done_at, assigned_to);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON push_subscriptions(user_id);

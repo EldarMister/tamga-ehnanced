@@ -22,6 +22,7 @@ import taskRoutes from './routes/tasks.js';
 import trainingRoutes from './routes/training.js';
 import leaveRoutes from './routes/leave_requests.js';
 import announcementRoutes from './routes/announcements.js';
+import pushRoutes from './routes/push.js';
 import reportRoutes from './routes/reports.js';
 import workJournalRoutes from './routes/work_journal.js';
 import { sseHandler } from './realtime.js';
@@ -49,6 +50,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/training', trainingRoutes);
 app.use('/api/leave-requests', leaveRoutes);
 app.use('/api/announcements', announcementRoutes);
+app.use('/api/push', pushRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/work-journal', workJournalRoutes);
 

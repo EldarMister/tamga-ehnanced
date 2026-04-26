@@ -4,6 +4,7 @@ import { useAuth } from './lib/auth.jsx';
 import { api } from './lib/api.js';
 import { useToast } from './components/Toast.jsx';
 import { on as onRealtime } from './lib/realtime.js';
+import { syncPushSubscription } from './lib/push.js';
 import ThemeToggle from './components/ThemeToggle.jsx';
 import TabBar from './components/TabBar.jsx';
 
@@ -52,6 +53,15 @@ function AnnouncementsToast() {
   return null;
 }
 
+function PushBootstrap() {
+  const { token } = useAuth();
+  useEffect(() => {
+    if (!token) return;
+    syncPushSubscription().catch(() => {});
+  }, [token]);
+  return null;
+}
+
 function PageFallback() {
   return <div style={{ textAlign: 'center', padding: 64, color: 'var(--text-tertiary)' }}>Загрузка…</div>;
 }
@@ -90,6 +100,7 @@ export default function App() {
       </div>
       <TabBar />
       <AnnouncementsToast />
+      <PushBootstrap />
     </>
   );
 }

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { one, all, exec } from '../db.js';
 import { authRequired, roleRequired } from '../auth.js';
 import { broadcast, broadcastTo } from '../realtime.js';
+import { sendPushToUser } from '../push.js';
 
 const router = Router();
 
@@ -34,15 +35,16 @@ router.get('/', authRequired, async (req, res) => {
 });
 
 router.post('/', authRequired, roleRequired('director', 'manager'), async (req, res) => {
-  const { title, description = '', type = 'daily', assigned_to, due_date = null } = req.body || {};
+  const { title, description = '', type = 'daily', due_date = null } = req.body || {};
+  const assignedTo = parseInt(req.body?.assigned_to, 10);
   if (!['daily','weekly'].includes(type)) return res.status(400).json({ detail: 'Тип задачи: daily или weekly' });
   if (!title) return res.status(400).json({ detail: 'Укажите название' });
-  const target = await one('SELECT id FROM users WHERE id = ? AND is_active = 1', [assigned_to]);
+  const target = await one('SELECT id FROM users WHERE id = ? AND is_active = 1', [assignedTo]);
   if (!target) return res.status(400).json({ detail: 'Сотрудник не найден' });
 
   const ins = await exec(
     'INSERT INTO tasks (title, description, type, assigned_to, assigned_by, due_date) VALUES (?,?,?,?,?,?) RETURNING id',
-    [title, description, type, assigned_to, req.user.id, due_date],
+    [title, description, type, assignedTo, req.user.id, due_date],
   );
   const newId = ins.rows[0].id;
   const row = await one(
@@ -51,7 +53,14 @@ router.post('/', authRequired, roleRequired('director', 'manager'), async (req, 
      WHERE t.id = ?`,
     [newId],
   );
-  broadcastTo(assigned_to, 'tasks:changed', { id: newId, action: 'assigned' });
+  broadcastTo(assignedTo, 'tasks:changed', { id: newId, action: 'assigned' });
+  await sendPushToUser(assignedTo, {
+    title: 'Новая задача',
+    body: title,
+    url: '/#/tasks',
+    tag: `task-${newId}`,
+    kind: 'task',
+  });
   res.json(row);
 });
 
