@@ -1692,6 +1692,76 @@ select.input {
     color: var(--text-tertiary);
 }
 
+/* ─── Дашборд: график (Recharts) ───────────────────────────────────────── */
+.dashboard-chart-wrap {
+    width: 100%;
+    margin-top: 8px;
+}
+.dashboard-chart-empty {
+    min-height: 240px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--text-tertiary);
+    background:
+        repeating-linear-gradient(0deg,  transparent 0 36px, var(--border) 36px 37px),
+        repeating-linear-gradient(90deg, transparent 0 56px, var(--border) 56px 57px);
+    background-size: 100% 100%;
+    border-radius: 12px;
+    padding: 32px 20px;
+}
+.dashboard-chart-empty-icon {
+    font-size: 32px;
+    opacity: 0.5;
+    margin-bottom: 8px;
+}
+.dashboard-chart-empty-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+.dashboard-chart-empty-sub {
+    font-size: 13px;
+    color: var(--text-tertiary);
+}
+
+.dashboard-chart-tooltip {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+    min-width: 180px;
+}
+.dashboard-chart-tooltip-date {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    text-transform: capitalize;
+}
+.dashboard-chart-tooltip-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 1.6;
+}
+.dashboard-chart-tooltip-label {
+    color: var(--text-secondary);
+    flex: 1;
+}
+.dashboard-chart-tooltip-value {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Цвет легенды-точки наследуется из существующих legend-dot-rev / legend-dot-cost */
+
 /* ─── Дашборд: заказы по статусам ──────────────────────────────────────── */
 .status-grid {
     display: grid;

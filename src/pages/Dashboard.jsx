@@ -5,6 +5,10 @@ import { useAuth } from '../lib/auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { formatCurrency, formatDate, statusBadgeClass, statusLabel, roleLabel } from '../lib/utils.js';
 import { useRealtime } from '../lib/useRealtime.js';
+import {
+  ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis,
+  CartesianGrid, Tooltip, Legend,
+} from 'recharts';
 
 const PERIODS = [
   { id: 'today', label: 'Сегодня' },
@@ -20,23 +24,6 @@ const KPI_ICONS = {
   fines: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v5h5" /><path d="M10 14h4a2 2 0 0 0 0-4h-3v8" /><path d="M10 14h6" /></svg>,
 };
 
-const EMPTY_DAILY = [
-  { day: '2026-05-01', revenue: 32000, cost: 12000 },
-  { day: '2026-05-03', revenue: 40000, cost: 21000 },
-  { day: '2026-05-05', revenue: 27000, cost: 8000 },
-  { day: '2026-05-07', revenue: 34000, cost: 10000 },
-  { day: '2026-05-09', revenue: 60000, cost: 35000 },
-  { day: '2026-05-11', revenue: 44000, cost: 16000 },
-  { day: '2026-05-13', revenue: 36000, cost: 13000 },
-  { day: '2026-05-15', revenue: 68000, cost: 30000 },
-  { day: '2026-05-17', revenue: 85000, cost: 41000 },
-  { day: '2026-05-19', revenue: 70000, cost: 39000 },
-  { day: '2026-05-20', revenue: 78000, cost: 47000 },
-  { day: '2026-05-22', revenue: 54000, cost: 29000 },
-  { day: '2026-05-24', revenue: 81000, cost: 41000 },
-  { day: '2026-05-27', revenue: 91000, cost: 60000 },
-  { day: '2026-05-31', revenue: 72000, cost: 41000 },
-];
 
 function getDates(period) {
   const now = new Date();
@@ -253,7 +240,7 @@ function DirectorView({ fin, employeeStats, tasks, onToggleTask, lang }) {
             </div>
             <button className="dashboard-chart-select" type="button">По дням <span>⌄</span></button>
           </div>
-          <FinanceLines daily={daily} />
+          <FinanceLines daily={daily} lang={lang} />
         </div>
 
         <div className="dashboard-panel dashboard-expense-panel">
@@ -296,80 +283,112 @@ function Kpi({ kind, label, value, color, lang }) {
   );
 }
 
-function FinanceLines({ daily }) {
-  const source = daily.length ? daily : EMPTY_DAILY;
-  const width = 720;
-  const height = 230;
-  const left = 52;
-  const right = 14;
-  const top = 18;
-  const bottom = 184;
-  const chartW = width - left - right;
-  const chartH = bottom - top;
-  const rev = source.map(d => Number(d.revenue || 0));
-  const cost = source.map(d => Number(d.cost || 0));
-  const maxVal = Math.max(100000, ...rev, ...cost);
-  const yTicks = [100000, 80000, 60000, 40000, 20000, 0];
-  const month = 'мая';
-  const xTicks = [
-    { i: 0, label: `1 ${month}` },
-    { i: Math.round((source.length - 1) * 0.25), label: `5 ${month}` },
-    { i: Math.round((source.length - 1) * 0.45), label: `10 ${month}` },
-    { i: Math.round((source.length - 1) * 0.65), label: `15 ${month}` },
-    { i: Math.round((source.length - 1) * 0.82), label: `20 ${month}` },
-    { i: source.length - 1, label: `31 ${month}` },
-  ];
+// Форматтер коротких сумм для оси Y: 1500 → 1.5к, 1200000 → 1.2M
+function shortMoney(v) {
+  const n = Number(v) || 0;
+  if (Math.abs(n) >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (Math.abs(n) >= 1_000)     return Math.round(n / 1000) + 'к';
+  return String(Math.round(n));
+}
 
-  const point = (v, i, count) => {
-    const x = left + (i * chartW) / Math.max(1, count - 1);
-    const y = bottom - (v / maxVal) * chartH;
-    return { x, y };
-  };
-  const toPoints = (vals) => vals.map((v, i) => {
-    const p = point(v, i, vals.length);
-    return `${p.x.toFixed(2)},${p.y.toFixed(2)}`;
-  }).join(' ');
-  const areaPoints = (vals) => `${left},${bottom} ${toPoints(vals)} ${left + chartW},${bottom}`;
+// Короткая дата для оси X: "2026-05-15" → "15 мая"
+function shortDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '');
+}
+
+function ChartTooltip({ active, payload, label, lang }) {
+  if (!active || !payload || !payload.length) return null;
+  const rev = payload.find(p => p.dataKey === 'revenue')?.value ?? 0;
+  const cost = payload.find(p => p.dataKey === 'cost')?.value ?? 0;
+  return (
+    <div className="dashboard-chart-tooltip">
+      <div className="dashboard-chart-tooltip-date">{shortDate(label)}</div>
+      <div className="dashboard-chart-tooltip-row">
+        <span className="legend-dot legend-dot-rev"></span>
+        <span className="dashboard-chart-tooltip-label">Доход</span>
+        <span className="dashboard-chart-tooltip-value">{formatCurrency(rev, lang)}</span>
+      </div>
+      <div className="dashboard-chart-tooltip-row">
+        <span className="legend-dot legend-dot-cost"></span>
+        <span className="dashboard-chart-tooltip-label">Расходы</span>
+        <span className="dashboard-chart-tooltip-value">{formatCurrency(cost, lang)}</span>
+      </div>
+    </div>
+  );
+}
+
+function FinanceLines({ daily, lang }) {
+  // Реальные данные с бэка: [{day, revenue, cost, ...}, ...].
+  // Бэк может вернуть строки (NUMERIC из Postgres) → конвертируем в числа.
+  const data = (daily || []).map(d => ({
+    day: d.day,
+    revenue: Number(d.revenue) || 0,
+    cost: Number(d.cost) || 0,
+  }));
+
+  // Empty state — никаких выдуманных линий, аккуратное сообщение.
+  if (data.length === 0) {
+    return (
+      <div className="dashboard-chart-empty">
+        <div className="dashboard-chart-empty-icon">📊</div>
+        <div className="dashboard-chart-empty-title">Недостаточно данных для графика</div>
+        <div className="dashboard-chart-empty-sub">За выбранный период ещё нет заказов</div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-chart-wrap">
-      <svg viewBox={`0 0 ${width} ${height}`} className="dashboard-line-chart" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="dashRevFill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#2f7cff" stopOpacity="0.16" />
-            <stop offset="100%" stopColor="#2f7cff" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id="dashCostFill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#ef5148" stopOpacity="0.14" />
-            <stop offset="100%" stopColor="#ef5148" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {yTicks.map(t => {
-          const y = bottom - (t / maxVal) * chartH;
-          return (
-            <g key={t}>
-              <text x="6" y={y + 4} className="dashboard-axis-label">{t === 0 ? '0' : `${Math.round(t / 1000)}k`}</text>
-              <line x1={left} x2={width - right} y1={y} y2={y} className="dashboard-grid-line" />
-            </g>
-          );
-        })}
-        <polygon points={areaPoints(cost)} fill="url(#dashCostFill)" />
-        <polygon points={areaPoints(rev)} fill="url(#dashRevFill)" />
-        <polyline points={toPoints(cost)} className="dashboard-line-cost" />
-        <polyline points={toPoints(rev)} className="dashboard-line-rev" />
-        {cost.map((v, i) => {
-          const p = point(v, i, cost.length);
-          return <circle key={`c-${i}`} cx={p.x} cy={p.y} r="4" className="dashboard-chart-dot dashboard-chart-dot-cost" />;
-        })}
-        {rev.map((v, i) => {
-          const p = point(v, i, rev.length);
-          return <circle key={`r-${i}`} cx={p.x} cy={p.y} r="4" className="dashboard-chart-dot dashboard-chart-dot-rev" />;
-        })}
-        {xTicks.map(t => {
-          const x = left + (t.i * chartW) / Math.max(1, source.length - 1);
-          return <text key={`${t.i}-${t.label}`} x={x} y="220" className="dashboard-x-label">{t.label}</text>;
-        })}
-      </svg>
+      <ResponsiveContainer width="100%" height={260}>
+        <ComposedChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id="dashRevFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#2f7cff" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="#2f7cff" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="dashCostFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#ef5148" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="#ef5148" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <CartesianGrid stroke="var(--border)" strokeDasharray="3 5" vertical={false} />
+          <XAxis
+            dataKey="day"
+            tickFormatter={shortDate}
+            tick={{ fill: 'var(--text-tertiary)', fontSize: 12 }}
+            stroke="var(--border)"
+            tickLine={false}
+            axisLine={false}
+            minTickGap={28}
+          />
+          <YAxis
+            tickFormatter={shortMoney}
+            tick={{ fill: 'var(--text-tertiary)', fontSize: 12 }}
+            stroke="var(--border)"
+            tickLine={false}
+            axisLine={false}
+            width={48}
+          />
+          <Tooltip content={<ChartTooltip lang={lang} />} cursor={{ stroke: 'var(--accent)', strokeWidth: 1, strokeDasharray: '4 4' }} />
+          <Area type="monotone" dataKey="revenue" stroke="none" fill="url(#dashRevFill)" />
+          <Area type="monotone" dataKey="cost"    stroke="none" fill="url(#dashCostFill)" />
+          <Line
+            type="monotone" dataKey="revenue" stroke="#2f7cff" strokeWidth={2.4}
+            dot={{ r: 3, fill: '#2f7cff', strokeWidth: 0 }}
+            activeDot={{ r: 5, fill: '#2f7cff', stroke: '#fff', strokeWidth: 2 }}
+            isAnimationActive={false}
+          />
+          <Line
+            type="monotone" dataKey="cost" stroke="#ef5148" strokeWidth={2.4}
+            dot={{ r: 3, fill: '#ef5148', strokeWidth: 0 }}
+            activeDot={{ r: 5, fill: '#ef5148', stroke: '#fff', strokeWidth: 2 }}
+            isAnimationActive={false}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
     </div>
   );
 }
