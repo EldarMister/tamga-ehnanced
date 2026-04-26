@@ -17,7 +17,6 @@ const Pricelist = lazy(() => import('./pages/Pricelist.jsx'));
 const HR = lazy(() => import('./pages/HR.jsx'));
 const Payroll = lazy(() => import('./pages/Payroll.jsx'));
 const Users = lazy(() => import('./pages/Users.jsx'));
-const Reports = lazy(() => import('./pages/Reports.jsx'));
 const Fines = lazy(() => import('./pages/Fines.jsx'));
 const Announcements = lazy(() => import('./pages/Announcements.jsx'));
 const ShiftChecklist = lazy(() => import('./pages/ShiftChecklist.jsx'));
@@ -74,7 +73,7 @@ export default function App() {
             <Route path="/hr" element={<PrivateRoute><HR /></PrivateRoute>} />
             <Route path="/payroll" element={<PrivateRoute><Payroll /></PrivateRoute>} />
             <Route path="/users" element={<PrivateRoute><Users /></PrivateRoute>} />
-            <Route path="/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
+            <Route path="/reports" element={<Navigate to="/dashboard" replace />} />
             <Route path="/fines" element={<PrivateRoute><Fines /></PrivateRoute>} />
             <Route path="/announcements" element={<PrivateRoute><Announcements /></PrivateRoute>} />
             <Route path="/shift-checklist" element={<PrivateRoute><ShiftChecklist /></PrivateRoute>} />

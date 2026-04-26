@@ -20,10 +20,9 @@ function getItems(role, lang) {
     workJournal:   { label: t('Журнал работы', 'Иш журналы'),      icon: '🕒', path: '/work-journal',     desc: t('Часы, прогулы, KPI', 'Саат, келбей калуу, KPI') },
     leave:         { label: t('Отпуск / Больничный', 'Эс алуу / Ооруу'), icon: '🩺', path: '/leave-requests', desc: t('Заявки и согласование', 'Сурамдар жана бекитүү') },
     users:         { label: t('Сотрудники', 'Кызматкерлер'),       icon: '👥', path: '/users',            desc: t('Управление аккаунтами', 'Колдонуучуларды башкаруу') },
-    reports:       { label: t('Отчёты', 'Отчеттор'),               icon: '📊', path: '/reports',          desc: t('Аналитика и статистика', 'Аналитика жана статистика') },
     training:      { label: t('Уроки', 'Сабактар'),                icon: '🎓', path: '/training',         desc: t('Видео и фото инструкции', 'Видео жана сүрөт нускама') },
   };
-  if (role === 'director') return ['calculator','announcements','shiftChecklist','pricelist','payroll','fines','workJournal','leave','users','reports','training'].map(k => ALL[k]);
+  if (role === 'director') return ['calculator','announcements','shiftChecklist','pricelist','payroll','fines','workJournal','leave','users','training'].map(k => ALL[k]);
   if (role === 'manager')  return ['calculator','announcements','pricelist','fines','workJournal','leave','training'].map(k => ALL[k]);
   return ['calculator','announcements','workJournal','leave','training'].map(k => ALL[k]);
 }

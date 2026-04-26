@@ -1667,6 +1667,123 @@ select.input {
     color: var(--text-tertiary);
 }
 
+/* ─── Дашборд: заказы по статусам ──────────────────────────────────────── */
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+}
+.status-tile {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.status-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.06);
+}
+.status-tile-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.status-tile-pct {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+}
+.status-tile-count {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+.status-tile-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+.status-total {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+.status-total b {
+    color: var(--text-primary);
+    margin: 0 4px;
+}
+
+/* ─── Дашборд: расход материалов (полосы) ──────────────────────────────── */
+.usage-bar {
+    height: 10px;
+    background: var(--bg-tertiary);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.usage-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #60a5fa);
+    border-radius: 999px;
+    transition: width 0.3s ease;
+}
+
+/* ─── Дашборд: сотрудники ──────────────────────────────────────────────── */
+.emp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+}
+.emp-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+}
+.emp-card-name {
+    font-weight: 700;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.emp-card-role {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-bottom: 10px;
+}
+.emp-card-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    text-align: center;
+}
+.emp-stat {
+    background: var(--bg-primary);
+    border-radius: 10px;
+    padding: 6px 4px;
+}
+.emp-stat-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+.emp-stat-value {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
 /* ─── Hero-карточки на странице "Меню" ───────────────────────────────────── */
 .more-profile-card,
 .more-shift-card {

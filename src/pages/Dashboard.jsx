@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.jsx';
 import { useToast } from '../components/Toast.jsx';
-import { formatCurrency, formatDate } from '../lib/utils.js';
+import { formatCurrency, formatDate, statusBadgeClass, statusLabel, roleLabel } from '../lib/utils.js';
 import { useRealtime } from '../lib/useRealtime.js';
 
 const PERIODS = [
@@ -31,6 +31,9 @@ export default function Dashboard() {
   const [period, setPeriod] = useState('month');
   const [customRange, setCustomRange] = useState(getDates('month'));
   const [summary, setSummary] = useState(null);
+  const [ordersBreakdown, setOrdersBreakdown] = useState(null);
+  const [materialUsage, setMaterialUsage] = useState([]);
+  const [employeeStats, setEmployeeStats] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -45,13 +48,19 @@ export default function Dashboard() {
     setLoading(true); setError(false);
     try {
       const { from, to } = activeRange;
-      const requests = [];
-      if (isDirector) requests.push(api.get(`/api/reports/finance?date_from=${from}&date_to=${to}`));
-      else if (isManager) requests.push(api.get(`/api/reports/orders-summary?date_from=${from}&date_to=${to}`));
-      else requests.push(Promise.resolve(null));
-      requests.push(api.get('/api/tasks?done=0'));
-      const [s, t] = await Promise.all(requests);
-      setSummary(s); setTasks(t || []);
+      const q = `?date_from=${from}&date_to=${to}`;
+      const [fin, ordSum, matUse, empStats, t] = await Promise.all([
+        isDirector ? api.get(`/api/reports/finance${q}`) : Promise.resolve(null),
+        isManager  ? api.get(`/api/reports/orders-summary${q}`).catch(() => null) : Promise.resolve(null),
+        isManager  ? api.get(`/api/reports/material-usage${q}`).catch(() => []) : Promise.resolve([]),
+        isDirector ? api.get(`/api/reports/employee-stats${q}`).catch(() => []) : Promise.resolve([]),
+        api.get('/api/tasks?done=0').catch(() => []),
+      ]);
+      setSummary(fin);
+      setOrdersBreakdown(ordSum);
+      setMaterialUsage(matUse || []);
+      setEmployeeStats(empStats || []);
+      setTasks(t || []);
     } catch { setError(true); } finally { setLoading(false); }
   }, [activeRange.from, activeRange.to, isDirector, isManager]);
 
@@ -134,19 +143,28 @@ export default function Dashboard() {
           ) : (
             <>
               {isDirector && summary && <DirectorView fin={summary} lang={lang} />}
-              {!isDirector && isManager && summary && (
+              {!isDirector && isManager && ordersBreakdown && (
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="stat-card stat-card-blue">
                     <div className="stat-label">Заказов</div>
-                    <div className="stat-value number-animate">{summary.totals.total_orders}</div>
+                    <div className="stat-value number-animate">{ordersBreakdown.totals.total_orders}</div>
                   </div>
                   <div className="stat-card stat-card-green">
                     <div className="stat-label">Выручка</div>
                     <div className="stat-value number-animate" style={{ color: 'var(--success)' }}>
-                      {formatCurrency(summary.totals.total_revenue, lang)}
+                      {formatCurrency(ordersBreakdown.totals.total_revenue, lang)}
                     </div>
                   </div>
                 </div>
+              )}
+              {isManager && ordersBreakdown && ordersBreakdown.by_status?.length > 0 && (
+                <OrdersByStatus rows={ordersBreakdown.by_status} lang={lang} />
+              )}
+              {isManager && materialUsage.length > 0 && (
+                <MaterialUsage rows={materialUsage} />
+              )}
+              {isDirector && employeeStats.length > 0 && (
+                <EmployeeStats rows={employeeStats} lang={lang} />
               )}
               <TasksCard tasks={tasks} onToggle={toggleTask} lang={lang} />
             </>
@@ -286,6 +304,91 @@ function TopServices({ items, lang }) {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function OrdersByStatus({ rows, lang }) {
+  const totalCount = rows.reduce((s, r) => s + (r.count || 0), 0);
+  const totalRev = rows.reduce((s, r) => s + Number(r.revenue || 0), 0);
+  return (
+    <div className="card mb-4">
+      <div className="dash-title">Заказы по статусам</div>
+      <div className="status-grid">
+        {rows.map(r => {
+          const pct = totalCount > 0 ? Math.round((r.count / totalCount) * 100) : 0;
+          return (
+            <div key={r.status} className="status-tile">
+              <div className="status-tile-head">
+                <span className={statusBadgeClass(r.status)}>{statusLabel(r.status, lang)}</span>
+                <span className="status-tile-pct">{pct}%</span>
+              </div>
+              <div className="status-tile-count">{r.count}</div>
+              <div className="status-tile-sub">{formatCurrency(r.revenue, lang)}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="status-total">
+        Всего: <b>{totalCount}</b> заказ{totalCount === 1 ? '' : totalCount < 5 ? 'а' : 'ов'}
+        <span style={{ marginLeft: 'auto' }}>{formatCurrency(totalRev, lang)}</span>
+      </div>
+    </div>
+  );
+}
+
+function MaterialUsage({ rows }) {
+  const max = Math.max(1, ...rows.map(m => Number(m.used) || 0));
+  return (
+    <div className="card mb-4">
+      <div className="dash-title">Расход материалов</div>
+      <div className="space-y-3">
+        {rows.map((m, i) => {
+          const used = Number(m.used) || 0;
+          const pct = Math.max(2, Math.round((used / max) * 100));
+          return (
+            <div key={i}>
+              <div className="flex justify-between text-sm mb-1 gap-2">
+                <span className="truncate">{m.name_ru}</span>
+                <span className="font-bold">{used.toFixed(1)} {m.unit}</span>
+              </div>
+              <div className="usage-bar">
+                <div className="usage-bar-fill" style={{ width: `${pct}%` }}></div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function EmployeeStats({ rows, lang }) {
+  return (
+    <div className="card mb-4">
+      <div className="dash-title">Сотрудники</div>
+      <div className="emp-grid">
+        {rows.map(e => (
+          <div key={e.id} className="emp-card">
+            <div className="emp-card-name">{e.full_name}</div>
+            <div className="emp-card-role">{roleLabel(e.role, lang)}</div>
+            <div className="emp-card-stats">
+              <div className="emp-stat">
+                <div className="emp-stat-label">Дней</div>
+                <div className="emp-stat-value">{e.days_worked}</div>
+              </div>
+              <div className="emp-stat">
+                <div className="emp-stat-label">Задач</div>
+                <div className="emp-stat-value">{e.tasks_done}</div>
+              </div>
+              <div className="emp-stat">
+                <div className="emp-stat-label">Инцид.</div>
+                <div className={`emp-stat-value ${e.incidents > 0 ? 'text-red-600' : ''}`}>{e.incidents}</div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
