@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { one, all, exec } from '../db.js';
 import { authRequired, roleRequired } from '../auth.js';
+import { broadcastTo } from '../realtime.js';
 
 const router = Router();
 
@@ -116,6 +117,7 @@ router.patch('/:id/pay', authRequired, roleRequired('director'), async (req, res
   if (!row) return res.status(404).json({ detail: 'Запись не найдена' });
   await exec('UPDATE payroll SET is_paid = 1, paid_at = CURRENT_TIMESTAMP WHERE id = ?', [id]);
   const updated = await one('SELECT * FROM payroll WHERE id = ?', [id]);
+  broadcastTo(updated.user_id, 'payroll:paid', { id });
   res.json(updated);
 });
 

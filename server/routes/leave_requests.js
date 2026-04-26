@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { one, all, exec } from '../db.js';
 import { authRequired, roleRequired } from '../auth.js';
+import { broadcast } from '../realtime.js';
 
 const router = Router();
 
@@ -65,6 +66,7 @@ router.post('/', authRequired, async (req, res, next) => {
       [targetUserId, reqType, reason, toIso(start), toIso(end), daysCount, req.user.id],
     );
     const row = await one(`${SELECT_LEAVE} WHERE lr.id = ?`, [ins.rows[0].id]);
+    broadcast('leave:changed', { id: row.id, action: 'created' });
     res.json(row);
   } catch (e) {
     if (e.statusCode) return res.status(e.statusCode).json({ detail: e.message });
@@ -118,6 +120,7 @@ router.patch('/:id/status', authRequired, roleRequired('director', 'manager'), a
     [newStatus, req.user.id, String(req.body?.review_note || '').trim(), id],
   );
   const updated = await one(`${SELECT_LEAVE} WHERE lr.id = ?`, [id]);
+  broadcast('leave:changed', { id, action: 'review', status: newStatus });
   res.json(updated);
 });
 

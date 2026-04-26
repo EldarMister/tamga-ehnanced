@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { one, all, exec, pool } from '../db.js';
 import { authRequired, roleRequired } from '../auth.js';
 import { upload, storeUpload } from '../uploads.js';
+import { broadcast } from '../realtime.js';
 
 const router = Router();
 
@@ -15,6 +16,7 @@ router.post('/checkin', authRequired, async (req, res) => {
   if (existing) return res.status(400).json({ detail: 'Вы уже отметились сегодня' });
   await exec('INSERT INTO attendance (user_id) VALUES (?)', [req.user.id]);
   const row = await one('SELECT * FROM attendance WHERE user_id = ? AND date = ?', [req.user.id, today]);
+  broadcast('hr:attendance', { user_id: req.user.id, action: 'checkin' });
   res.json(row);
 });
 
@@ -44,6 +46,7 @@ router.post('/checkout', authRequired, async (req, res) => {
 
   await exec('UPDATE attendance SET check_out = CURRENT_TIMESTAMP WHERE id = ?', [existing.id]);
   const row = await one('SELECT * FROM attendance WHERE id = ?', [existing.id]);
+  broadcast('hr:attendance', { user_id: req.user.id, action: 'checkout' });
   res.json({ ...row, shift_tasks_summary: { total: totalCount, completed: doneCount, not_completed: notCompleted } });
 });
 
@@ -218,6 +221,7 @@ router.post('/incidents', authRequired, roleRequired('director', 'manager'), asy
     }
     await client.query('COMMIT');
     const row = await one('SELECT * FROM incidents WHERE id = ?', [incidentId]);
+    broadcast('hr:incident', { id: incidentId, user_id: data.user_id, type: data.type });
     res.json(row);
   } catch (e) {
     await client.query('ROLLBACK').catch(() => {});

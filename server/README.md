@@ -18,21 +18,38 @@ Node.js + Express + Postgres backend для tamga-react.
 - сидятся `shift_tasks`,
 - создаётся первый директор: **admin / 12345** (если в `users` пусто).
 
-## Эндпоинты (этап 1+2)
+## Эндпоинты
 
-### Auth
-- `POST /api/auth/login` — `{username, password}` → `{token, user}`
-- `GET /api/auth/me` — текущий пользователь (Bearer)
-- `POST /api/auth/change-password` — `{old_password, new_password}`
+Все эндпоинты 1:1 повторяют API оригинального FastAPI-бэкенда tamga.
 
-### Users
-- `GET /api/users` — список (director/manager)
-- `POST /api/users` — создание (director)
-- `PUT /api/users/:id` — обновление (director)
-- `PATCH /api/users/:id/active` — toggle активности (director)
-- `POST /api/users/:id/reset-password` — сброс на 12345 (director)
-- `PATCH /api/users/me/lang?lang=ru|ky` — смена языка
-- `PATCH /api/users/me` — смена логина/телефона (director)
+- **Auth**: `/api/auth/login`, `/me`, `/change-password`
+- **Users**: `/api/users` CRUD, `/me`, `/me/lang`, `/:id/active`, `/:id/reset-password`
+- **Pricelist**: `/api/pricelist` (GET/PUT)
+- **Inventory**: `/api/inventory`, `/alerts`, `/:id/ledger`, `/:id/receive`, `/:id/correction`
+- **Orders**: `/api/orders` (list/create), `/:id` (get/put), `/:id/status`, `/:id/notify`, `/:id/photo`, `/:id/design`, `/:id/photo/raw`
+- **HR**: `/api/hr/checkin`, `/checkout`, `/my-attendance`, `/attendance`, `/attendance/today`, `/shift-tasks` (catalog/CRUD/complete/report), `/incidents` (CRUD/photo/review)
+- **Payroll**: `/api/payroll`, `/month-report`, `/week-report`, `/:id/pay`
+- **Tasks**: `/api/tasks` CRUD, `/:id/done`
+- **Training**: `/api/training` CRUD, `/:id/watch`, `/:id/photo`, `/progress`
+- **Leave requests**: `/api/leave-requests` (list/create), `/:id/status`
+- **Announcements**: `/api/announcements` (list/create), `/:id/read`
+- **Reports**: `/api/reports/orders-summary`, `/material-usage`, `/employee-stats`, `/finance`, `/finance-export.csv`
+- **Work journal**: `/api/work-journal`
+- **Real-time**: `/api/events` (Server-Sent Events, авторизация через `?token=...`)
+- **Uploads**: `/api/uploads/:filename` — отдача файлов из БД
+
+## Real-time события
+
+Сервер пушит эти события всем подключённым клиентам (или конкретному пользователю через `broadcastTo`):
+
+- `orders:changed` — создание/изменение/смена статуса заказа
+- `hr:attendance` — приход/уход на смене
+- `hr:incident` — новый инцидент
+- `tasks:changed` — задача создана / отмечена выполненной
+- `leave:changed` — заявка создана / одобрена / отклонена
+- `inventory:changed` — приход или корректировка материала
+- `payroll:paid` — зарплата выплачена (только этому юзеру)
+- `announcement:new` — новое объявление
 
 ## Деплой на Railway
 

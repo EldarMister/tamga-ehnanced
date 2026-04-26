@@ -4,6 +4,7 @@ import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { formatCurrency, formatDate } from '../lib/utils.js';
+import { useRealtime } from '../lib/useRealtime.js';
 
 const PERIODS = [
   { id: 'today', label: 'Сегодня' },
@@ -55,6 +56,8 @@ export default function Dashboard() {
   }, [activeRange.from, activeRange.to, isDirector, isManager]);
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [period]);
+  // Любое существенное событие на бэке — переподтягиваем сводку.
+  useRealtime(['orders:changed', 'hr:incident', 'tasks:changed', 'payroll:paid'], load);
 
   const applyCustom = () => load();
 

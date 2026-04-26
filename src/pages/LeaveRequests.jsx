@@ -3,6 +3,7 @@ import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { formatDate, formatDateTime, roleLabel } from '../lib/utils.js';
+import { useRealtime } from '../lib/useRealtime.js';
 
 const todayIso = () => new Date().toISOString().split('T')[0];
 const typeLabel = (t) => t === 'sick' ? 'Больничный' : 'Отдых';
@@ -51,6 +52,7 @@ export default function LeaveRequests() {
   }, [statusFilter, userFilter, canManage]);
 
   useEffect(() => { load(); }, [load]);
+  useRealtime('leave:changed', load);
 
   const submit = async () => {
     if (!reason.trim()) { showToast('Укажите причину', 'warning'); return; }

@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { useModal } from '../components/Modal.jsx';
 import { formatDate, roleLabel } from '../lib/utils.js';
+import { useRealtime } from '../lib/useRealtime.js';
 
 export default function Tasks() {
   const { user, lang } = useAuth();
@@ -25,6 +26,7 @@ export default function Tasks() {
   }, [filterType]);
 
   useEffect(() => { load(); }, [load]);
+  useRealtime('tasks:changed', load);
 
   const toggleDone = async (id) => {
     try { await api.patch(`/api/tasks/${id}/done`); load(); } catch {}

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { startRealtime, stopRealtime } from './realtime.js';
 
 const AuthContext = createContext(null);
 
@@ -49,6 +50,12 @@ export function AuthProvider({ children }) {
     window.addEventListener('storage', handler);
     return () => window.removeEventListener('storage', handler);
   }, []);
+
+  // Авто-старт SSE-соединения при наличии токена.
+  useEffect(() => {
+    if (auth.token) startRealtime();
+    else stopRealtime();
+  }, [auth.token]);
 
   return (
     <AuthContext.Provider value={{ ...auth, login, logout, updateUser, setLang }}>

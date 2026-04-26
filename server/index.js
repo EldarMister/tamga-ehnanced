@@ -14,6 +14,10 @@ import payrollRoutes from './routes/payroll.js';
 import taskRoutes from './routes/tasks.js';
 import trainingRoutes from './routes/training.js';
 import leaveRoutes from './routes/leave_requests.js';
+import announcementRoutes from './routes/announcements.js';
+import reportRoutes from './routes/reports.js';
+import workJournalRoutes from './routes/work_journal.js';
+import { sseHandler } from './realtime.js';
 
 const app = express();
 
@@ -37,6 +41,12 @@ app.use('/api/payroll', payrollRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/training', trainingRoutes);
 app.use('/api/leave-requests', leaveRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/work-journal', workJournalRoutes);
+
+// Real-time события через Server-Sent Events.
+app.get('/api/events', sseHandler);
 
 // Отдача загруженных файлов из таблицы uploads.
 app.get('/api/uploads/:filename', serveUpload);

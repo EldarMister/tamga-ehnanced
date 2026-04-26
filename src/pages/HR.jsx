@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { useModal } from '../components/Modal.jsx';
 import { formatTime, formatDateTime, roleLabel } from '../lib/utils.js';
+import { useRealtime } from '../lib/useRealtime.js';
 
 const TYPE_LABELS = { defect: '🔴 Брак', late: '🟡 Опоздание', complaint: '🟠 Жалоба', other: '⚪ Прочее' };
 
@@ -55,6 +56,15 @@ export default function HR() {
   useEffect(() => {
     if (attendance && !attendance.check_out) loadShiftTasks();
   }, [attendance, loadShiftTasks]);
+
+  // Real-time: ловим события прихода/ухода и инцидентов.
+  useRealtime('hr:attendance', useCallback(() => {
+    loadShift();
+    if (isManager) loadToday();
+  }, [loadShift, loadToday, isManager]));
+  useRealtime('hr:incident', useCallback(() => {
+    if (isManager) loadIncidents();
+  }, [loadIncidents, isManager]));
 
   const checkin = async () => {
     try { await api.post('/api/hr/checkin'); showToast('Смена начата!', 'success'); loadShift(); } catch {}

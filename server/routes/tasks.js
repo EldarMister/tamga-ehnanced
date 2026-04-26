@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { one, all, exec } from '../db.js';
 import { authRequired, roleRequired } from '../auth.js';
+import { broadcast, broadcastTo } from '../realtime.js';
 
 const router = Router();
 
@@ -50,6 +51,7 @@ router.post('/', authRequired, roleRequired('director', 'manager'), async (req, 
      WHERE t.id = ?`,
     [newId],
   );
+  broadcastTo(assigned_to, 'tasks:changed', { id: newId, action: 'assigned' });
   res.json(row);
 });
 
@@ -66,6 +68,7 @@ router.patch('/:id/done', authRequired, async (req, res) => {
   } else {
     await exec('UPDATE tasks SET is_done = ?, done_at = NULL WHERE id = ?', [newDone, id]);
   }
+  broadcast('tasks:changed', { id, action: 'toggle', is_done: newDone });
   res.json({ id, is_done: newDone });
 });
 

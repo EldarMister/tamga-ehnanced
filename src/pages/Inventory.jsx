@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { useModal } from '../components/Modal.jsx';
 import { formatDateTime } from '../lib/utils.js';
+import { useRealtime } from '../lib/useRealtime.js';
 
 const ACTION_LABELS = {
   receive: '📦 Приход', reserve: '🔒 Резерв', unreserve: '🔓 Возврат',
@@ -27,6 +28,8 @@ export default function Inventory() {
     } catch { setError(true); }
   }, []);
   useEffect(() => { load(); }, [load]);
+  // Real-time: списания/резервы материалов из заказов и приход.
+  useRealtime(['inventory:changed', 'orders:changed'], load);
 
   const showReceive = (id, name) => {
     showForm({

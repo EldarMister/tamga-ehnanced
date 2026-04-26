@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.jsx';
+import { useRealtime } from '../lib/useRealtime.js';
 import { formatCurrency, formatDate, statusBadgeClass, statusLabel, isOverdue, buildUploadUrl, openImageViewer } from '../lib/utils.js';
 
 const STATUS_FILTERS = [
@@ -40,6 +41,9 @@ export default function Orders() {
     debRef.current = setTimeout(load, 400);
     return () => clearTimeout(debRef.current);
   }, [load]);
+
+  // Real-time: при любом изменении заказов подтягиваем свежий список.
+  useRealtime('orders:changed', load);
 
   return (
     <>

@@ -1,8 +1,9 @@
-import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { lazy, Suspense, useEffect, useRef } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
 import { useAuth } from './lib/auth.jsx';
 import { api } from './lib/api.js';
 import { useToast } from './components/Toast.jsx';
+import { on as onRealtime } from './lib/realtime.js';
 import ThemeToggle from './components/ThemeToggle.jsx';
 import TabBar from './components/TabBar.jsx';
 
@@ -34,28 +35,21 @@ function PrivateRoute({ children }) {
   return children;
 }
 
-function AnnouncementsPoll() {
+// Раньше было поллингом каждые 30с; теперь сервер пушит SSE-событие announcement:new.
+function AnnouncementsToast() {
   const { token } = useAuth();
   const showToast = useToast();
-  const lastCheck = useRef(0);
-  const location = useLocation();
-
   useEffect(() => {
     if (!token) return;
-    const now = Date.now();
-    if (now - lastCheck.current < 30000) return;
-    lastCheck.current = now;
-    (async () => {
+    const off = onRealtime('announcement:new', async (data) => {
+      showToast(data?.message || 'Новое объявление', 'success');
       try {
-        const list = await api.get('/api/announcements?unread=1');
-        if (!list || !list.length) return;
-        const latest = list[0];
-        showToast(latest.message, 'success');
-        await api.post(`/api/announcements/${latest.id}/read`, {});
+        api.clearCache('/api/announcements');
+        if (data?.id) await api.post(`/api/announcements/${data.id}/read`, {});
       } catch {}
-    })();
-  }, [location.pathname, token, showToast]);
-
+    });
+    return off;
+  }, [token, showToast]);
   return null;
 }
 
@@ -96,7 +90,7 @@ export default function App() {
         </Suspense>
       </div>
       <TabBar />
-      <AnnouncementsPoll />
+      <AnnouncementsToast />
     </>
   );
 }

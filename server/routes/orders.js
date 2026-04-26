@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { one, all, exec, pool, query } from '../db.js';
 import { authRequired, roleRequired } from '../auth.js';
 import { upload, storeUpload } from '../uploads.js';
+import { broadcast } from '../realtime.js';
 
 const router = Router();
 
@@ -258,6 +259,7 @@ router.post('/', authRequired, roleRequired('manager', 'director'), async (req, 
     await client.query('COMMIT');
 
     const created = await one(`SELECT ${ORDER_COLS} FROM orders WHERE id = ?`, [orderId]);
+    broadcast('orders:changed', { id: orderId, action: 'created' });
     res.json(serializeOrder(created));
   } catch (e) {
     await client.query('ROLLBACK').catch(() => {});
@@ -284,10 +286,11 @@ router.put('/:id', authRequired, roleRequired('manager', 'director'), async (req
   await exec(`UPDATE orders SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, values);
 
   const updated = await one(`SELECT ${ORDER_COLS} FROM orders WHERE id = ?`, [id]);
+  broadcast('orders:changed', { id, action: 'updated' });
   res.json(serializeOrder(updated));
 });
 
-// ─── Update status ────────────────────────────────────────────────────────────
+// ─── Update status────────────────────────────────────────────────────────────
 router.patch('/:id/status', authRequired, async (req, res, next) => {
   const id = parseInt(req.params.id, 10);
   const newStatus = req.body?.status;
@@ -361,6 +364,7 @@ router.patch('/:id/status', authRequired, async (req, res, next) => {
 
     await client.query('COMMIT');
     const updated = await one(`SELECT ${ORDER_COLS} FROM orders WHERE id = ?`, [id]);
+    broadcast('orders:changed', { id, action: 'status', status: newStatus });
     res.json(serializeOrder(updated));
   } catch (e) {
     await client.query('ROLLBACK').catch(() => {});

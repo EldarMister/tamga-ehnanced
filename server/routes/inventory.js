@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { one, all, exec } from '../db.js';
 import { authRequired, roleRequired } from '../auth.js';
+import { broadcast } from '../realtime.js';
 
 const router = Router();
 
@@ -58,6 +59,7 @@ async function adjustMaterial(req, res, action, defaultNote, requirePositive) {
   );
 
   const updated = await one('SELECT * FROM materials WHERE id = ?', [matId]);
+  broadcast('inventory:changed', { material_id: matId, action });
   res.json(withAvailability(updated));
 }
 
