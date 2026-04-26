@@ -3151,21 +3151,58 @@ html:not([data-theme="dark"]) body {
 .legend-dot-rev { background: #2f7cff; }
 .legend-dot-cost { background: #ef5148; }
 
+.dashboard-chart-select-wrap { position: relative; }
 .dashboard-chart-select {
     height: 36px;
-    min-width: 112px;
+    min-width: 132px;
     padding: 0 12px;
     display: inline-flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     border: 1px solid #dce4ee;
-    border-radius: 7px;
+    border-radius: 8px;
     background: #ffffff;
     color: #304766;
     font-size: 14px;
     font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
+.dashboard-chart-select:hover { border-color: #93c5fd; }
+.dashboard-chart-select.open  { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.10); }
+.dashboard-chart-caret { transition: transform 0.18s ease; display: inline-block; }
+.dashboard-chart-caret.open { transform: rotate(180deg); }
+
+.dashboard-chart-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 160px;
+    padding: 6px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.dashboard-chart-menu-item {
+    text-align: left;
+    padding: 8px 12px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+.dashboard-chart-menu-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.dashboard-chart-menu-item.active { background: rgba(30, 64, 175, 0.10); color: var(--accent); font-weight: 700; }
 
 .dashboard-chart-wrap {
     width: 100%;

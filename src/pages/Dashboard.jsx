@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.jsx';
@@ -196,13 +196,87 @@ function PeriodSelector({ period, onChange }) {
   );
 }
 
+// Группировка дневных точек в недели или месяцы. Складываем revenue/cost.
+function aggregateDaily(daily, granularity) {
+  if (granularity === 'day' || !daily?.length) return daily || [];
+  const map = new Map();
+  for (const row of daily) {
+    if (!row?.day) continue;
+    const d = new Date(row.day + 'T00:00:00Z');
+    if (isNaN(d.getTime())) continue;
+    let key, label;
+    if (granularity === 'week') {
+      // ISO неделя: понедельник как начало
+      const day = d.getUTCDay() || 7;
+      const monday = new Date(d.getTime() - (day - 1) * 86400000);
+      key = monday.toISOString().split('T')[0];
+      label = key;
+    } else {
+      // месяц: первый день месяца
+      key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`;
+      label = key;
+    }
+    const cur = map.get(key) || { day: label, revenue: 0, cost: 0 };
+    cur.revenue += Number(row.revenue) || 0;
+    cur.cost    += Number(row.cost)    || 0;
+    map.set(key, cur);
+  }
+  return Array.from(map.values()).sort((a, b) => a.day.localeCompare(b.day));
+}
+
+const GRANULARITY_LABELS = {
+  day:   'По дням',
+  week:  'По неделям',
+  month: 'По месяцам',
+};
+
+function GranularityDropdown({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [open]);
+  return (
+    <div className="dashboard-chart-select-wrap" ref={ref}>
+      <button
+        className={`dashboard-chart-select ${open ? 'open' : ''}`}
+        type="button"
+        onClick={() => setOpen(o => !o)}
+      >
+        {GRANULARITY_LABELS[value]} <span className={`dashboard-chart-caret ${open ? 'open' : ''}`}>⌄</span>
+      </button>
+      {open && (
+        <div className="dashboard-chart-menu">
+          {Object.entries(GRANULARITY_LABELS).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              className={`dashboard-chart-menu-item ${k === value ? 'active' : ''}`}
+              onClick={() => { onChange(k); setOpen(false); }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DirectorView({ fin, employeeStats, tasks, onToggleTask, lang }) {
+  const [granularity, setGranularity] = useState('day');
   const expenses = (fin.material_cost || 0) + (fin.payroll || 0) + (fin.penalties || 0);
   const profit = fin.profit || 0;
   const margin = fin.revenue > 0 ? Math.round((profit / fin.revenue) * 100) : 0;
   const progress = Math.max(0, Math.min(100, margin));
   const donutBg = `conic-gradient(#1769ff ${progress}%, #edf2f8 ${progress}% 100%)`;
-  const daily = Array.isArray(fin.daily) ? [...fin.daily].reverse() : [];
+  // Бэк возвращает daily DESC по дню — переворачиваем для левого-направо отображения,
+  // потом группируем по выбранной гранулярности.
+  const dailyAsc = useMemo(() => Array.isArray(fin.daily) ? [...fin.daily].reverse() : [], [fin.daily]);
+  const chartData = useMemo(() => aggregateDaily(dailyAsc, granularity), [dailyAsc, granularity]);
 
   return (
     <div className="director-dashboard director-dashboard-reference">
@@ -238,9 +312,9 @@ function DirectorView({ fin, employeeStats, tasks, onToggleTask, lang }) {
                 <span><i className="legend-dot legend-dot-cost"></i> Расходы</span>
               </div>
             </div>
-            <button className="dashboard-chart-select" type="button">По дням <span>⌄</span></button>
+            <GranularityDropdown value={granularity} onChange={setGranularity} />
           </div>
-          <FinanceLines daily={daily} lang={lang} />
+          <FinanceLines daily={chartData} lang={lang} granularity={granularity} />
         </div>
 
         <div className="dashboard-panel dashboard-expense-panel">
@@ -298,14 +372,44 @@ function shortDate(iso) {
   if (isNaN(d.getTime())) return iso;
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '');
 }
+// Подпись для оси X в зависимости от гранулярности.
+function axisLabel(iso, granularity) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  if (granularity === 'month') {
+    return d.toLocaleDateString('ru-RU', { month: 'short', year: '2-digit' }).replace('.', '');
+  }
+  if (granularity === 'week') {
+    const end = new Date(d.getTime() + 6 * 86400000);
+    const a = String(d.getUTCDate());
+    const b = String(end.getUTCDate());
+    const m = end.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', '');
+    return `${a}–${b} ${m}`;
+  }
+  return shortDate(iso);
+}
+// Подпись в tooltip — более подробная.
+function tooltipDate(iso, granularity) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  if (granularity === 'month') return d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+  if (granularity === 'week') {
+    const end = new Date(d.getTime() + 6 * 86400000);
+    const f = (x) => x.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '');
+    return `Неделя ${f(d)} — ${f(end)}`;
+  }
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+}
 
-function ChartTooltip({ active, payload, label, lang }) {
+function ChartTooltip({ active, payload, label, lang, granularity }) {
   if (!active || !payload || !payload.length) return null;
   const rev = payload.find(p => p.dataKey === 'revenue')?.value ?? 0;
   const cost = payload.find(p => p.dataKey === 'cost')?.value ?? 0;
   return (
     <div className="dashboard-chart-tooltip">
-      <div className="dashboard-chart-tooltip-date">{shortDate(label)}</div>
+      <div className="dashboard-chart-tooltip-date">{tooltipDate(label, granularity)}</div>
       <div className="dashboard-chart-tooltip-row">
         <span className="legend-dot legend-dot-rev"></span>
         <span className="dashboard-chart-tooltip-label">Доход</span>
@@ -320,7 +424,7 @@ function ChartTooltip({ active, payload, label, lang }) {
   );
 }
 
-function FinanceLines({ daily, lang }) {
+function FinanceLines({ daily, lang, granularity = 'day' }) {
   // Реальные данные с бэка: [{day, revenue, cost, ...}, ...].
   // Бэк может вернуть строки (NUMERIC из Postgres) → конвертируем в числа.
   const data = (daily || []).map(d => ({
@@ -357,7 +461,7 @@ function FinanceLines({ daily, lang }) {
           <CartesianGrid stroke="var(--border)" strokeDasharray="3 5" vertical={false} />
           <XAxis
             dataKey="day"
-            tickFormatter={shortDate}
+            tickFormatter={(v) => axisLabel(v, granularity)}
             tick={{ fill: 'var(--text-tertiary)', fontSize: 12 }}
             stroke="var(--border)"
             tickLine={false}
@@ -372,7 +476,7 @@ function FinanceLines({ daily, lang }) {
             axisLine={false}
             width={48}
           />
-          <Tooltip content={<ChartTooltip lang={lang} />} cursor={{ stroke: 'var(--accent)', strokeWidth: 1, strokeDasharray: '4 4' }} />
+          <Tooltip content={<ChartTooltip lang={lang} granularity={granularity} />} cursor={{ stroke: 'var(--accent)', strokeWidth: 1, strokeDasharray: '4 4' }} />
           <Area type="monotone" dataKey="revenue" stroke="none" fill="url(#dashRevFill)" />
           <Area type="monotone" dataKey="cost"    stroke="none" fill="url(#dashCostFill)" />
           <Line
