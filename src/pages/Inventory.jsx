@@ -241,7 +241,7 @@ export default function Inventory() {
 
 function KpiCard({ tone, icon, title, value, sub }) {
   return (
-    <div className="inv-kpi">
+    <div className={`inv-kpi inv-kpi-${tone}`}>
       <div className={`inv-kpi-icon inv-kpi-icon-${tone}`}>{icon}</div>
       <div className="inv-kpi-text">
         <div className="inv-kpi-title">{title}</div>
