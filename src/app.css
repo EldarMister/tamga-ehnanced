@@ -6460,11 +6460,12 @@ body:has(.order-detail-page) .global-theme-toggle {
     box-shadow: 0 20px 40px rgba(239, 81, 72, 0.12);
 }
 
+/* ── Карточка заказа: горизонтальный макет ─────────────────── */
 .orders-card-layout {
     display: grid;
-    grid-template-columns: 194px minmax(0, 1fr) auto;
-    gap: 24px;
-    align-items: center;
+    grid-template-columns: 150px 1fr;
+    gap: 18px;
+    align-items: start;
 }
 
 .orders-card-media {
@@ -6474,8 +6475,8 @@ body:has(.order-detail-page) .global-theme-toggle {
 .orders-card-image,
 .orders-card-image-placeholder {
     width: 100%;
-    aspect-ratio: 1.18 / 1;
-    border-radius: 24px;
+    aspect-ratio: 1 / 1;
+    border-radius: 20px;
     border: 1px solid #dde7f4;
 }
 
@@ -6496,47 +6497,72 @@ body:has(.order-detail-page) .global-theme-toggle {
 }
 
 .orders-card-image-placeholder svg {
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
 }
 
-.orders-card-main {
+/* Правая колонка — весь контент */
+.orders-card-content {
     min-width: 0;
+    display: flex;
+    flex-direction: column;
 }
 
-.orders-card-orderline {
+/* Верхняя строка: номер + статус + меню */
+.orders-card-toprow {
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 8px;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.orders-card-toprow-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
+.orders-card-toprow-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    position: relative;
 }
 
 .orders-card-order-number {
     color: #1769ff;
-    font-size: 17px;
+    font-size: 15px;
     line-height: 1.2;
     font-weight: 500;
     letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .orders-card-overdue {
     display: inline-flex;
     align-items: center;
-    min-height: 28px;
-    padding: 0 11px;
+    min-height: 24px;
+    padding: 0 9px;
     border-radius: 999px;
     background: #fdeceb;
     color: #d34036;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
+    flex-shrink: 0;
 }
 
 .orders-card-client {
     margin: 0;
-    font-size: clamp(30px, 3vw, 38px);
-    line-height: 1;
-    letter-spacing: -0.04em;
+    font-size: clamp(20px, 2.2vw, 28px);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
     font-weight: 800;
     color: #071327;
 }
@@ -6544,10 +6570,10 @@ body:has(.order-detail-page) .global-theme-toggle {
 .orders-card-service {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 12px;
+    gap: 7px;
+    margin-top: 8px;
     color: #425871;
-    font-size: 17px;
+    font-size: 15px;
     line-height: 1.4;
     font-weight: 500;
 }
@@ -6555,8 +6581,8 @@ body:has(.order-detail-page) .global-theme-toggle {
 .orders-card-service-icon,
 .orders-card-meta-icon,
 .orders-card-date-icon {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
     color: #7286a0;
 }
@@ -6564,28 +6590,31 @@ body:has(.order-detail-page) .global-theme-toggle {
 .orders-card-meta {
     display: flex;
     align-items: center;
-    gap: 14px 16px;
+    gap: 10px 12px;
     flex-wrap: wrap;
-    margin-top: 16px;
+    margin-top: 10px;
     color: #647991;
 }
 
 .orders-card-meta-item {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    font-size: 15px;
+    gap: 6px;
+    font-size: 13px;
     line-height: 1.35;
     font-weight: 500;
 }
 
-.orders-card-side {
-    display: grid;
-    justify-items: end;
-    gap: 12px;
-    min-width: 168px;
+/* Нижняя строка: цена + дата */
+.orders-card-bottomrow {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 12px;
 }
 
+/* (устаревшие классы оставлены для совместимости, не используются) */
 .orders-card-side-top {
     display: flex;
     align-items: center;
@@ -6751,17 +6780,6 @@ body:has(.orders-page) .global-theme-toggle {
     right: max(22px, env(safe-area-inset-right));
 }
 
-@media (max-width: 1120px) {
-    .orders-card-layout {
-        grid-template-columns: 162px minmax(0, 1fr) 160px;
-        gap: 18px;
-    }
-
-    .orders-card-client {
-        font-size: 32px;
-    }
-}
-
 @media (max-width: 900px) {
     .orders-page {
         padding-left: 16px;
@@ -6773,20 +6791,8 @@ body:has(.orders-page) .global-theme-toggle {
     }
 
     .orders-card-layout {
-        grid-template-columns: 140px minmax(0, 1fr);
-        gap: 16px;
-    }
-
-    .orders-card-side {
-        grid-column: 1 / -1;
-        justify-items: start;
-        gap: 10px;
-        padding-top: 14px;
-        border-top: 1px solid #e9eff7;
-    }
-
-    .orders-card-side-top {
-        justify-content: space-between;
+        grid-template-columns: 130px 1fr;
+        gap: 14px;
     }
 }
 
@@ -6864,87 +6870,73 @@ body:has(.orders-page) .global-theme-toggle {
     }
 
     .orders-card {
-        padding: 16px;
-        border-radius: 24px;
+        padding: 14px;
+        border-radius: 20px;
     }
 
     .orders-card-layout {
-        grid-template-columns: 112px minmax(0, 1fr);
-        gap: 14px;
+        grid-template-columns: 110px 1fr;
+        gap: 12px;
     }
 
     .orders-card-image,
     .orders-card-image-placeholder {
-        border-radius: 18px;
-    }
-
-    .orders-card-client {
-        font-size: 26px;
-    }
-
-    .orders-card-order-number {
-        font-size: 15px;
-    }
-
-    .orders-card-service {
-        font-size: 15px;
-    }
-
-    .orders-card-meta {
-        gap: 10px 12px;
-    }
-
-    .orders-card-meta-item {
-        font-size: 13px;
-    }
-
-    .orders-status-badge {
-        min-height: 38px;
-        padding: 0 14px;
-        font-size: 13px;
-    }
-
-    .orders-card-menu-button {
-        width: 40px;
-        height: 40px;
         border-radius: 14px;
     }
 
+    .orders-card-image-placeholder svg {
+        width: 36px;
+        height: 36px;
+    }
+
+    .orders-card-client {
+        font-size: 22px;
+        letter-spacing: -0.03em;
+    }
+
+    .orders-card-toprow {
+        margin-bottom: 4px;
+    }
+
+    .orders-card-service {
+        margin-top: 6px;
+        font-size: 14px;
+    }
+
+    .orders-card-meta {
+        margin-top: 8px;
+        gap: 6px 10px;
+    }
+
+    .orders-card-bottomrow {
+        margin-top: 10px;
+    }
+
+    .orders-status-badge {
+        min-height: 32px;
+        padding: 0 11px;
+        font-size: 12px;
+        gap: 7px;
+    }
+
+    .orders-status-badge-dot {
+        width: 6px;
+        height: 6px;
+    }
+
+    .orders-card-menu-button {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+    }
+
     .orders-card-price {
-        font-size: 26px;
+        font-size: 20px;
+        letter-spacing: -0.03em;
     }
 
     .orders-card-date {
-        font-size: 14px;
-    }
-}
-
-@media (max-width: 460px) {
-    .orders-card-layout {
-        grid-template-columns: 1fr;
-    }
-
-    .orders-card-media {
-        max-width: 100%;
-    }
-
-    .orders-card-image,
-    .orders-card-image-placeholder {
-        aspect-ratio: 1.4 / 1;
-    }
-
-    .orders-card-main {
-        min-width: 0;
-    }
-
-    .orders-card-side {
-        padding-top: 12px;
-    }
-
-    .orders-card-menu {
-        left: auto;
-        right: 0;
-        width: min(100vw - 48px, 232px);
+        font-size: 13px;
     }
 }
 
@@ -7057,7 +7049,7 @@ body:has(.orders-page) .global-theme-toggle {
     color: #ff9b93;
 }
 
-[data-theme="dark"] .orders-card-side {
+[data-theme="dark"] .orders-card-bottomrow {
     border-top-color: rgba(69, 86, 112, 0.55);
 }
 

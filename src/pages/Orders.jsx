@@ -522,6 +522,8 @@ function OrderCard({ order, lang, userRole, onOpen, onReload }) {
       aria-label={`Открыть заказ ${order.order_number}`}
     >
       <div className="orders-card-layout">
+
+        {/* Фото слева */}
         <div className="orders-card-media">
           {photoUrl && !imgError ? (
             <img
@@ -542,37 +544,21 @@ function OrderCard({ order, lang, userRole, onOpen, onReload }) {
           )}
         </div>
 
-        <div className="orders-card-main">
-          <div className="orders-card-orderline">
-            <span className="orders-card-order-number">{order.order_number}</span>
-            {overdue ? <span className="orders-card-overdue">Просрочен</span> : null}
-          </div>
-          <h2 className="orders-card-client">{order.client_name}</h2>
-          <div className="orders-card-service">
-            <span className="orders-card-service-icon">{SVG.order}</span>
-            <span>{serviceLine}</span>
-          </div>
-          <div className="orders-card-meta">
-            {metaItems.map((item) => (
-              <span key={item} className="orders-card-meta-item">
-                <span className="orders-card-meta-icon">
-                  {item.includes('услуг') || item.includes('услуга') || item.includes('услуги') ? SVG.box : SVG.image}
-                </span>
-                <span>{item}</span>
-              </span>
-            ))}
-          </div>
-        </div>
+        {/* Весь контент справа */}
+        <div className="orders-card-content">
 
-        <div className="orders-card-side">
-          <div className="orders-card-side-top">
-            <StatusBadge status={order.status} lang={lang} />
-
+          {/* Верхняя строка: номер + статус + меню */}
+          <div className="orders-card-toprow">
+            <div className="orders-card-toprow-left">
+              <span className="orders-card-order-number">{order.order_number}</span>
+              {overdue ? <span className="orders-card-overdue">Просрочен</span> : null}
+            </div>
             <div
-              className="orders-card-menu-wrap"
+              className="orders-card-toprow-right"
               ref={menuRef}
               onClick={(event) => event.stopPropagation()}
             >
+              <StatusBadge status={order.status} lang={lang} />
               <button
                 type="button"
                 className="orders-card-menu-button"
@@ -583,7 +569,6 @@ function OrderCard({ order, lang, userRole, onOpen, onReload }) {
               >
                 {SVG.more}
               </button>
-
               {menuOpen ? (
                 <div className="orders-card-menu" role="menu">
                   {actions.map((action) => (
@@ -607,11 +592,36 @@ function OrderCard({ order, lang, userRole, onOpen, onReload }) {
             </div>
           </div>
 
-          <div className="orders-card-price">{formatCurrency(order.total_price, lang)}</div>
-          <div className="orders-card-date">
-            <span className="orders-card-date-icon">{SVG.calendar}</span>
-            <span>{displayDate}</span>
+          {/* Клиент */}
+          <h2 className="orders-card-client">{order.client_name}</h2>
+
+          {/* Услуга */}
+          <div className="orders-card-service">
+            <span className="orders-card-service-icon">{SVG.order}</span>
+            <span>{serviceLine}</span>
           </div>
+
+          {/* Мета */}
+          <div className="orders-card-meta">
+            {metaItems.map((item) => (
+              <span key={item} className="orders-card-meta-item">
+                <span className="orders-card-meta-icon">
+                  {item.includes('услуг') || item.includes('услуга') || item.includes('услуги') ? SVG.box : SVG.image}
+                </span>
+                <span>{item}</span>
+              </span>
+            ))}
+          </div>
+
+          {/* Нижняя строка: цена + дата */}
+          <div className="orders-card-bottomrow">
+            <div className="orders-card-price">{formatCurrency(order.total_price, lang)}</div>
+            <div className="orders-card-date">
+              <span className="orders-card-date-icon">{SVG.calendar}</span>
+              <span>{displayDate}</span>
+            </div>
+          </div>
+
         </div>
       </div>
 
