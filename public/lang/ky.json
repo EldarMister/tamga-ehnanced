@@ -14,8 +14,8 @@
         "overdue": "Мөөнөтү өттү"
     },
     "inventory": {
-        "stock": "Кампада", "reserved": "Бронь", "available": "Жеткиликтүү",
-        "low_stock": "Кампада аз калды", "receive": "Кабыл алуу", "correction": "Оңдоо"
+        "stock": "Складта", "reserved": "Бронь", "available": "Жеткиликтүү",
+        "low_stock": "Складта аз калды", "receive": "Кабыл алуу", "correction": "Оңдоо"
     },
     "hr": {
         "checkin": "Сменаны баштоо", "checkout": "Сменаны бүтүрүү",

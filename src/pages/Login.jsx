@@ -23,10 +23,12 @@ export default function Login() {
     setBusy(true);
     try {
       const data = await api.post('/api/auth/login', { username: username.trim(), password });
-      if (data) {
+      if (data?.token && data?.user) {
         login(data.token, data.user);
         showToast(`Добро пожаловать, ${data.user.full_name}!`, 'success');
         navigate('/orders');
+      } else {
+        showToast('Не удалось войти. Проверьте ответ сервера.', 'error');
       }
     } catch {} finally { setBusy(false); }
   };

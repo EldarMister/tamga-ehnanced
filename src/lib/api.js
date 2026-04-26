@@ -46,7 +46,7 @@ async function request(method, path, body = null) {
 
   try {
     const res = await fetch(apiUrl(path), opts);
-    if (res.status === 401) {
+    if (res.status === 401 && path !== '/api/auth/login') {
       clearAuthStorage();
       window.location.hash = '#/login';
       window.location.reload();
