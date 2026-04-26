@@ -2544,7 +2544,7 @@ html:not([data-theme="dark"]) body {
     max-width: none;
     min-height: 100vh;
     margin-left: calc(50% - 50vw);
-    padding: 0 35px 48px;
+    padding: 0 35px calc(96px + env(safe-area-inset-bottom, 0px));
     background:
         radial-gradient(circle at 18% 4%, rgba(224, 235, 255, 0.72), transparent 28%),
         radial-gradient(circle at 82% 18%, rgba(241, 247, 255, 0.8), transparent 30%),
@@ -3254,19 +3254,21 @@ html:not([data-theme="dark"]) body {
     }
 
     .dashboard-finance-hero {
+        height: auto;
         min-height: auto;
         padding: 22px;
     }
 
     .dashboard-expense-structure {
         grid-template-columns: 1fr;
+        gap: 18px;
     }
-}
 
-@media (min-width: 1025px) {
-    body:has(.dashboard-page) #tab-bar,
-    body:has(.dashboard-page) .global-theme-toggle {
-        display: none;
+    .dashboard-expense-panel,
+    .dashboard-trend-panel,
+    .dashboard-bottom-grid,
+    .dashboard-main-grid {
+        height: auto;
     }
 }
 
@@ -3285,12 +3287,28 @@ html:not([data-theme="dark"]) body {
     }
 
     .dashboard-finance-hero {
+        height: auto;
         flex-direction: column;
         align-items: flex-start;
+        gap: 18px;
+        overflow: visible;
     }
 
     .dashboard-margin-wrap {
         align-self: center;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .dashboard-margin-gauge {
+        width: 78px;
+        height: 78px;
+    }
+
+    .dashboard-margin-inner {
+        width: 58px;
+        height: 58px;
+        font-size: 18px;
     }
 
     .dashboard-kpi-card {
@@ -3304,6 +3322,41 @@ html:not([data-theme="dark"]) body {
 
     .dashboard-panel {
         padding: 18px;
+    }
+
+    .dashboard-expense-panel,
+    .dashboard-trend-panel,
+    .dashboard-employee-panel,
+    .dashboard-tasks-panel {
+        height: auto;
+        min-height: 0;
+    }
+
+    .dashboard-expense-structure {
+        min-height: 0;
+        grid-template-columns: 1fr;
+        justify-items: center;
+    }
+
+    .dashboard-expense-donut {
+        width: 184px;
+        height: 184px;
+    }
+
+    .dashboard-expense-inner {
+        width: 108px;
+        height: 108px;
+    }
+
+    .dashboard-expense-legend {
+        width: 100%;
+        gap: 14px;
+    }
+
+    .dashboard-legend-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        width: 100%;
+        font-size: 13px;
     }
 
     .dashboard-chart-wrap {
