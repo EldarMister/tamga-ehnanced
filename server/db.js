@@ -107,6 +107,8 @@ export async function initDb() {
   const schema = fs.readFileSync(schemaPath, 'utf8');
   // pg.Pool.query поддерживает несколько statement'ов в одной строке.
   await pool.query(schema);
+  await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS prepayment_amount REAL NOT NULL DEFAULT 0');
+  await pool.query('UPDATE orders SET prepayment_amount = 0 WHERE prepayment_amount IS NULL');
 
   // Сидим shift_tasks один раз
   const { rows } = await pool.query('SELECT COUNT(*)::int AS n FROM shift_tasks');

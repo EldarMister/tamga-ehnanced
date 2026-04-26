@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS orders (
     status              TEXT    NOT NULL DEFAULT 'created'
                         CHECK(status IN ('created','design','design_done','production','printed','postprocess','ready','closed','cancelled','defect')),
     total_price         REAL    NOT NULL DEFAULT 0,
+    prepayment_amount   REAL    NOT NULL DEFAULT 0,
     material_cost       REAL    NOT NULL DEFAULT 0,
     notes               TEXT,
     design_file         TEXT,

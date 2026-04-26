@@ -72,8 +72,8 @@ const SVG = {
 
 function isAreaUnit(unit) {
   if (!unit) return false;
-  const u = unit.toLowerCase().replace(/\s+/g, '');
-  return u.includes('м2') || u.includes('м²') || u.includes('m2') || u.includes('m²');
+  const normalized = unit.toLowerCase().replace(/\s+/g, '');
+  return normalized.includes('м2') || normalized.includes('м²') || normalized.includes('m2') || normalized.includes('m²');
 }
 
 function getServiceUnitPrice(service, clientType) {
@@ -83,6 +83,7 @@ function getServiceUnitPrice(service, clientType) {
 
 function calcLine(item, service, clientType) {
   if (!service) return { unitPrice: 0, lineTotal: 0, areaRequired: false };
+
   const unitPrice = getServiceUnitPrice(service, clientType);
   const qty = parseFloat(item.quantity) || 0;
   const areaRequired = isAreaUnit(service.unit);
@@ -113,6 +114,11 @@ function formatDeadline(value) {
   return `${day}.${month}.${year}`;
 }
 
+function parsePrepayment(value) {
+  if (!String(value || '').trim()) return 0;
+  return Number(String(value).replace(',', '.'));
+}
+
 function SectionHeading({ icon, title }) {
   return (
     <div className="order-create-section-head">
@@ -133,6 +139,7 @@ export default function OrderCreate() {
   const [clientType, setClientType] = useState('retail');
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
+  const [prepaymentInput, setPrepaymentInput] = useState('');
   const [deadline, setDeadline] = useState('');
   const [notes, setNotes] = useState('');
   const [selectedPhotoName, setSelectedPhotoName] = useState('');
@@ -189,6 +196,10 @@ export default function OrderCreate() {
     return items.filter((item) => !!getService(item.service_id)).length;
   }, [items, services]);
 
+  const parsedPrepayment = parsePrepayment(prepaymentInput);
+  const safePrepayment = Number.isFinite(parsedPrepayment) && parsedPrepayment > 0 ? parsedPrepayment : 0;
+  const remainingAmount = Math.max(total - safePrepayment, 0);
+
   const updateItem = (id, patch) => {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   };
@@ -215,8 +226,8 @@ export default function OrderCreate() {
 
   const summaryClient = clientName.trim() || 'Не указан';
   const summaryDeadline = formatDeadline(deadline);
-  const prepayment = formatCurrency(0, lang);
   const formattedTotal = formatCurrency(total, lang);
+  const formattedRemaining = formatCurrency(remainingAmount, lang);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -252,11 +263,18 @@ export default function OrderCreate() {
       }
 
       if (payloadItems.length === 0) throw new Error('Добавьте хотя бы одну услугу');
+      if (!Number.isFinite(parsedPrepayment) || parsedPrepayment < 0) {
+        throw new Error('Предоплата должна быть числом не меньше 0');
+      }
+      if (parsedPrepayment > total) {
+        throw new Error('Предоплата не может быть больше суммы заказа');
+      }
 
       const order = {
         client_name: form.client_name.value.trim(),
         client_phone: form.client_phone.value.trim(),
         client_type: clientType,
+        prepayment_amount: parsedPrepayment,
         items: payloadItems,
         notes: form.notes.value.trim(),
         deadline: form.deadline.value || null,
@@ -575,13 +593,26 @@ export default function OrderCreate() {
                 </div>
 
                 <div className="order-create-summary-list">
-                  <div className="order-create-summary-row">
-                    <span>Предоплата</span>
-                    <strong>{prepayment}</strong>
+                  <div className="order-create-summary-row order-create-summary-row-input">
+                    <label className="order-create-summary-input-label" htmlFor="order-create-prepayment">Предоплата</label>
+                    <div className="order-create-summary-input-wrap">
+                      <input
+                        id="order-create-prepayment"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        inputMode="decimal"
+                        className="order-create-summary-input"
+                        value={prepaymentInput}
+                        onChange={(event) => setPrepaymentInput(event.target.value)}
+                        placeholder="0"
+                      />
+                      <span className="order-create-summary-input-unit">сом</span>
+                    </div>
                   </div>
                   <div className="order-create-summary-row">
                     <span>Остаток</span>
-                    <strong>{formattedTotal}</strong>
+                    <strong>{formattedRemaining}</strong>
                   </div>
                   <div className="order-create-summary-row">
                     <span>Срок сдачи</span>

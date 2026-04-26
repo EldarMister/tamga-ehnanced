@@ -39,7 +39,7 @@ function calcItemTotal(unit, unitPrice, quantity, width, height) {
 }
 
 const ORDER_COLS = `id, order_number, client_name, client_phone, client_type, status,
-  total_price, material_cost, notes, design_file, photo_file,
+  total_price, prepayment_amount, material_cost, notes, design_file, photo_file,
   CASE WHEN photo_file IS NOT NULL AND TRIM(photo_file) <> '' THEN 1 ELSE 0 END AS has_photo,
   assigned_designer, assigned_master, assigned_assistant, deadline,
   created_by, created_at, updated_at`;
@@ -47,11 +47,28 @@ const ORDER_COLS = `id, order_number, client_name, client_phone, client_type, st
 function serializeOrder(row, opts = {}) {
   if (!row) return row;
   const o = { ...row };
+  o.prepayment_amount = Number(o.prepayment_amount || 0);
+  o.remaining_amount = Math.max(Number(o.total_price || 0) - o.prepayment_amount, 0);
   const hasPhoto = !!o.has_photo || (o.photo_file && String(o.photo_file).trim());
   o.photo_url = hasPhoto ? `/api/orders/${o.id}/photo/raw?v=${encodeURIComponent(o.updated_at || '')}` : '';
   delete o.has_photo;
   if (opts.hideMaterialCost) delete o.material_cost;
   return o;
+}
+
+function parsePrepaymentAmount(rawValue, totalPrice) {
+  const value = rawValue === '' || rawValue == null ? 0 : Number(rawValue);
+  if (!Number.isFinite(value) || value < 0) {
+    const err = new Error('Предоплата должна быть числом не меньше 0');
+    err.statusCode = 400;
+    throw err;
+  }
+  if (value > Number(totalPrice || 0)) {
+    const err = new Error('Предоплата не может быть больше суммы заказа');
+    err.statusCode = 400;
+    throw err;
+  }
+  return Math.round(value * 100) / 100;
 }
 
 async function generateOrderNumber(client) {
@@ -100,7 +117,7 @@ router.get('/', authRequired, async (req, res) => {
 
   const where = conditions.join(' AND ');
   const orders = await all(
-    `SELECT ${ORDER_COLS.replace(/(\bid\b|order_number|client_name|client_phone|client_type|status|total_price|material_cost|notes|design_file|photo_file|assigned_designer|assigned_master|assigned_assistant|deadline|created_by|created_at|updated_at)/g, 'o.$1')} FROM orders o WHERE ${where} ORDER BY o.created_at DESC LIMIT ? OFFSET ?`,
+    `SELECT ${ORDER_COLS.replace(/(\bid\b|order_number|client_name|client_phone|client_type|status|total_price|prepayment_amount|material_cost|notes|design_file|photo_file|assigned_designer|assigned_master|assigned_assistant|deadline|created_by|created_at|updated_at)/g, 'o.$1')} FROM orders o WHERE ${where} ORDER BY o.created_at DESC LIMIT ? OFFSET ?`,
     [...params, limit, offset],
   );
   const countRow = await one(`SELECT COUNT(*)::int AS n FROM orders o WHERE ${where}`, params);
@@ -225,12 +242,14 @@ router.post('/', authRequired, roleRequired('manager', 'director'), async (req, 
       });
     }
 
+    const prepaymentAmount = parsePrepaymentAmount(data.prepayment_amount, totalPrice);
+
     const ins = await client.query(
-      `INSERT INTO orders (order_number, client_name, client_phone, client_type, total_price, material_cost,
+      `INSERT INTO orders (order_number, client_name, client_phone, client_type, total_price, prepayment_amount, material_cost,
          notes, deadline, assigned_designer, assigned_master, assigned_assistant, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
       [orderNumber, data.client_name, data.client_phone || '', data.client_type || 'retail',
-       totalPrice, materialCost, data.notes || '', data.deadline || null,
+       totalPrice, prepaymentAmount, materialCost, data.notes || '', data.deadline || null,
        data.assigned_designer || null, data.assigned_master || null, data.assigned_assistant || null, req.user.id],
     );
     const orderId = ins.rows[0].id;
@@ -276,9 +295,12 @@ router.put('/:id', authRequired, roleRequired('manager', 'director'), async (req
   const order = await one(`SELECT ${ORDER_COLS} FROM orders WHERE id = ?`, [id]);
   if (!order) return res.status(404).json({ detail: 'Заказ не найден' });
 
-  const allowed = ['client_name','client_phone','notes','deadline','assigned_designer','assigned_master','assigned_assistant'];
+  const allowed = ['client_name','client_phone','notes','deadline','assigned_designer','assigned_master','assigned_assistant','prepayment_amount'];
   const updates = {};
   for (const k of allowed) if (k in req.body) updates[k] = req.body[k];
+  if ('prepayment_amount' in updates) {
+    updates.prepayment_amount = parsePrepaymentAmount(updates.prepayment_amount, order.total_price);
+  }
   if (Object.keys(updates).length === 0) return res.json(serializeOrder(order));
 
   const setClause = Object.keys(updates).map(k => `${k} = ?`).join(', ');

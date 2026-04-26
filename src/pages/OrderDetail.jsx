@@ -59,6 +59,10 @@ export default function OrderDetail() {
   const canNotify = isManager && order.status === 'ready';
   const photoUrl = order.photo_url || buildUploadUrl(order.photo_file);
   const items = Array.isArray(order.items) ? order.items : [];
+  const prepaymentAmount = Number(order.prepayment_amount || 0);
+  const remainingAmount = Number.isFinite(Number(order.remaining_amount))
+    ? Number(order.remaining_amount)
+    : Math.max(Number(order.total_price || 0) - prepaymentAmount, 0);
 
   const advance = () => {
     showConfirm({
@@ -189,6 +193,18 @@ export default function OrderDetail() {
           <div className="mt-4 flex items-center justify-between">
             <span className="text-gray-500">Итого по заказу</span>
             <span className="font-bold text-lg">{formatCurrency(order.total_price, lang)}</span>
+          </div>
+          <div className="mt-3 pt-3 border-t">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-xs text-gray-400">Предоплата</div>
+                <div className="font-bold text-blue-600">{formatCurrency(prepaymentAmount, lang)}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-400">Остаток</div>
+                <div className="font-bold">{formatCurrency(remainingAmount, lang)}</div>
+              </div>
+            </div>
           </div>
           {user.role === 'director' && (
             <div className="mt-3 pt-3 border-t">
