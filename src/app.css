@@ -1666,3 +1666,43 @@ select.input {
 .wj-day-weekend {
     color: var(--text-tertiary);
 }
+
+/* Плавающая круглая кнопка (FAB) — над таб-баром в правом нижнем углу. */
+.fab {
+    position: fixed;
+    right: 20px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); /* над tab-bar */
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 32px;
+    line-height: 1;
+    font-weight: 300;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(30, 64, 175, 0.35), 0 2px 4px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.fab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(30, 64, 175, 0.4), 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+.fab:active {
+    transform: translateY(0) scale(0.96);
+}
+
+@media (min-width: 768px) {
+    .fab {
+        right: 32px;
+        bottom: 32px; /* tab-bar спрятан на десктопе — отступ от низа */
+    }
+}

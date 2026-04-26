@@ -49,7 +49,7 @@ export default function Orders() {
     <>
       <div className="page-header">
         <h1 className="page-title">Заказы</h1>
-        {canCreate && <button className="btn btn-primary" onClick={() => navigate('/orders/new')}>+ Новый</button>}
+        <div></div>
       </div>
       <div className="px-4 mb-3">
         <input type="search" className="input" placeholder="Поиск по номеру или клиенту..."
@@ -77,6 +77,11 @@ export default function Orders() {
           </div>
         ) : orders.map(order => <OrderCard key={order.id} order={order} lang={lang} onOpen={() => navigate(`/orders/${order.id}`)} />)}
       </div>
+      {canCreate && (
+        <button className="fab" onClick={() => navigate('/orders/new')} aria-label="Новый заказ" title="Новый заказ">
+          +
+        </button>
+      )}
     </>
   );
 }
