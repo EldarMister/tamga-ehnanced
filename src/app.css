@@ -547,6 +547,13 @@ select.input {
 #tab-bar {
     background: var(--bg-secondary);
     border-top: 1px solid var(--border);
+    backdrop-filter: blur(8px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+#tab-bar > div {
+    height: 64px;
+    padding: 0 4px;
 }
 
 .tab-item {
@@ -554,54 +561,48 @@ select.input {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    padding: 8px 12px;
-    min-width: 64px;
-    min-height: 52px;
+    gap: 2px;
+    padding: 6px 10px;
+    min-width: 56px;
     color: var(--text-tertiary);
     font-size: 11px;
     font-weight: 600;
     text-decoration: none;
     cursor: pointer;
-    transition: all var(--transition);
-    position: relative;
+    transition: color 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
     border-radius: 12px;
 }
 
-.tab-item::before {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 50%;
-    transform: translateX(-50%) scaleX(0);
-    width: 24px;
-    height: 3px;
-    border-radius: 2px;
-    background: var(--accent);
-    transition: transform var(--transition);
+/* Иконка-плашка — серая по умолчанию, синяя у активной (как в современных iOS-приложениях) */
+.tab-item .tab-icon-pill {
+    width: 56px;
+    height: 32px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.18s ease;
+    background: transparent;
 }
-
 .tab-item.active {
     color: var(--accent);
 }
-
-.tab-item.active::before {
-    transform: translateX(-50%) scaleX(1);
+.tab-item.active .tab-icon-pill {
+    background: var(--accent-light, rgba(30, 64, 175, 0.12));
 }
 
-.tab-item:hover {
-    color: var(--accent);
-    background: var(--accent-glow);
+.tab-item:hover .tab-icon-pill {
+    background: var(--accent-light, rgba(30, 64, 175, 0.08));
 }
 
 .tab-item svg {
-    width: 24px;
-    height: 24px;
-    transition: transform var(--transition);
+    width: 22px;
+    height: 22px;
+    stroke-width: 2;
+    transition: transform 0.18s ease;
 }
-
-.tab-item:hover svg { transform: scale(1.1); }
-.tab-item.active svg { transform: scale(1.15); }
+.tab-item.active svg { transform: scale(1.05); stroke-width: 2.2; }
 
 .tab-badge {
     position: absolute;
@@ -1783,6 +1784,71 @@ select.input {
     color: var(--text-primary);
     font-variant-numeric: tabular-nums;
 }
+
+/* ─── Карточки меню (страница "Меню") ────────────────────────────────────── */
+.menu-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+.menu-row:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+    border-color: rgba(30, 64, 175, 0.18);
+}
+.menu-row:active {
+    transform: translateY(0);
+}
+.menu-row-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    flex-shrink: 0;
+}
+.menu-row-text { flex: 1; min-width: 0; }
+.menu-row-title {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 15px;
+    margin-bottom: 2px;
+}
+.menu-row-desc {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    line-height: 1.3;
+}
+
+/* Цветовые тона плашек — точно как на референсе */
+.menu-row-icon-amber  { background: #fef3c7; }
+.menu-row-icon-orange { background: #ffedd5; }
+.menu-row-icon-yellow { background: #fef9c3; }
+.menu-row-icon-green  { background: #dcfce7; }
+.menu-row-icon-mint   { background: #d1fae5; }
+.menu-row-icon-blue   { background: #dbeafe; }
+.menu-row-icon-pink   { background: #fce7f3; }
+.menu-row-icon-purple { background: #ede9fe; }
+.menu-row-icon-dark   { background: #1f2937; color: #fff; }
+
+[data-theme="dark"] .menu-row-icon-amber  { background: rgba(251, 191, 36, 0.18); }
+[data-theme="dark"] .menu-row-icon-orange { background: rgba(249, 115, 22, 0.18); }
+[data-theme="dark"] .menu-row-icon-yellow { background: rgba(234, 179, 8, 0.18); }
+[data-theme="dark"] .menu-row-icon-green  { background: rgba(34, 197, 94, 0.18); }
+[data-theme="dark"] .menu-row-icon-mint   { background: rgba(16, 185, 129, 0.18); }
+[data-theme="dark"] .menu-row-icon-blue   { background: rgba(59, 130, 246, 0.22); }
+[data-theme="dark"] .menu-row-icon-pink   { background: rgba(236, 72, 153, 0.18); }
+[data-theme="dark"] .menu-row-icon-purple { background: rgba(139, 92, 246, 0.22); }
+[data-theme="dark"] .menu-row-icon-dark   { background: #111827; color: #fff; }
 
 /* ─── Hero-карточки на странице "Меню" ───────────────────────────────────── */
 .more-profile-card,

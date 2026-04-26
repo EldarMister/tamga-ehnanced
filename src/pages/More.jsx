@@ -10,17 +10,18 @@ const tr = (lang, ru, ky) => lang === 'ky' ? ky : ru;
 
 function getItems(role, lang) {
   const t = (ru, ky) => tr(lang, ru, ky);
+  // tone — цвет плашки под иконкой (точно как на референсном скриншоте)
   const ALL = {
-    calculator:    { label: t('Калькулятор', 'Калькулятор'),       icon: '🧮', path: '/calculator',       desc: t('Расчёт стоимости услуг', 'Кызматтардын баасын эсептөө') },
-    announcements: { label: t('Объявления', 'Жарнамалар'),         icon: '📢', path: '/announcements',    desc: t('Сообщения сотрудникам', 'Кызматкерлерге билдирүү') },
-    shiftChecklist:{ label: t('Чек-лист смены', 'Смена тизмеси'),  icon: '✅', path: '/shift-checklist',  desc: t('Настройка и контроль', 'Жөндөө жана көзөмөл') },
-    pricelist:     { label: t('Прайс-лист', 'Баа тизмеси'),        icon: '💰', path: '/pricelist',        desc: t('Цены на услуги', 'Кызмат баалары') },
-    payroll:       { label: t('Зарплата', 'Айлык'),                icon: '💳', path: '/payroll',          desc: t('Ежемесячный расчёт', 'Айлык эсеп') },
-    fines:         { label: t('Журнал штрафов', 'Айып журналы'),   icon: '💸', path: '/fines',            desc: t('История удержаний', 'Кармоо тарыхы') },
-    workJournal:   { label: t('Журнал работы', 'Иш журналы'),      icon: '🕒', path: '/work-journal',     desc: t('Часы, прогулы, KPI', 'Саат, келбей калуу, KPI') },
-    leave:         { label: t('Отпуск / Больничный', 'Эс алуу / Ооруу'), icon: '🩺', path: '/leave-requests', desc: t('Заявки и согласование', 'Сурамдар жана бекитүү') },
-    users:         { label: t('Сотрудники', 'Кызматкерлер'),       icon: '👥', path: '/users',            desc: t('Управление аккаунтами', 'Колдонуучуларды башкаруу') },
-    training:      { label: t('Уроки', 'Сабактар'),                icon: '🎓', path: '/training',         desc: t('Видео и фото инструкции', 'Видео жана сүрөт нускама') },
+    calculator:    { label: t('Калькулятор', 'Калькулятор'),       icon: '🧮', tone: 'amber',  path: '/calculator',       desc: t('Расчёт стоимости услуг', 'Кызматтардын баасын эсептөө') },
+    announcements: { label: t('Объявления', 'Жарнамалар'),         icon: '📢', tone: 'orange', path: '/announcements',    desc: t('Сообщения сотрудникам', 'Кызматкерлерге билдирүү') },
+    shiftChecklist:{ label: t('Чек-лист смены', 'Смена тизмеси'),  icon: '✅', tone: 'green',  path: '/shift-checklist',  desc: t('Настройка и контроль', 'Жөндөө жана көзөмөл') },
+    pricelist:     { label: t('Прайс-лист', 'Баа тизмеси'),        icon: '💰', tone: 'yellow', path: '/pricelist',        desc: t('Цены на услуги', 'Кызмат баалары') },
+    payroll:       { label: t('Зарплата', 'Айлык'),                icon: '💳', tone: 'blue',   path: '/payroll',          desc: t('Ежемесячный расчёт', 'Айлык эсеп') },
+    fines:         { label: t('Журнал штрафов', 'Айып журналы'),   icon: '💸', tone: 'mint',   path: '/fines',            desc: t('История удержаний', 'Кармоо тарыхы') },
+    workJournal:   { label: t('Журнал работы', 'Иш журналы'),      icon: '🕒', tone: 'pink',   path: '/work-journal',     desc: t('Часы, прогулы, KPI', 'Саат, келбей калуу, KPI') },
+    leave:         { label: t('Отпуск / Больничный', 'Эс алуу / Ооруу'), icon: '🩺', tone: 'blue', path: '/leave-requests', desc: t('Заявки и согласование', 'Сурамдар жана бекитүү') },
+    users:         { label: t('Сотрудники', 'Кызматкерлер'),       icon: '👥', tone: 'purple', path: '/users',            desc: t('Управление аккаунтами', 'Колдонуучуларды башкаруу') },
+    training:      { label: t('Уроки', 'Сабактар'),                icon: '🎓', tone: 'dark',   path: '/training',         desc: t('Видео и фото инструкции', 'Видео жана сүрөт нускама') },
   };
   if (role === 'director') return ['calculator','announcements','shiftChecklist','pricelist','payroll','fines','workJournal','leave','users','training'].map(k => ALL[k]);
   if (role === 'manager')  return ['calculator','announcements','pricelist','fines','workJournal','leave','training'].map(k => ALL[k]);
@@ -177,12 +178,11 @@ export default function More() {
 
         {/* Остальные пункты меню */}
         {items.map((it, i) => (
-          <a key={i} className="card flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow"
-             onClick={() => navigate(it.path)}>
-            <div className="text-3xl">{it.icon}</div>
-            <div>
-              <div className="font-bold">{it.label}</div>
-              <div className="text-sm text-gray-500">{it.desc}</div>
+          <a key={i} className="menu-row" onClick={() => navigate(it.path)}>
+            <div className={`menu-row-icon menu-row-icon-${it.tone || 'blue'}`}>{it.icon}</div>
+            <div className="menu-row-text">
+              <div className="menu-row-title">{it.label}</div>
+              <div className="menu-row-desc">{it.desc}</div>
             </div>
           </a>
         ))}

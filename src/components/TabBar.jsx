@@ -45,7 +45,7 @@ export default function TabBar() {
           return (
             <a key={tab.id} className={`tab-item ${active ? 'active' : ''}`}
                onClick={(e) => { e.preventDefault(); navigate(tab.path); }}>
-              {ICONS[tab.icon]}
+              <span className="tab-icon-pill">{ICONS[tab.icon]}</span>
               <span>{labels[tab.id] || tab.id}</span>
             </a>
           );
