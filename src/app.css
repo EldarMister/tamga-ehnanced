@@ -3458,14 +3458,14 @@ html:not([data-theme="dark"]) body {
 }
 
 .hr-page-header {
-    min-height: 109px;
-    padding-top: 25px;
+    min-height: 96px;
+    padding-top: 22px;
 }
 
 .hr-page-title {
     margin: 0;
     color: #0c1630;
-    font-size: 47px;
+    font-size: 40px;
     line-height: 1.08;
     font-weight: 800;
     letter-spacing: -0.04em;
@@ -3474,7 +3474,7 @@ html:not([data-theme="dark"]) body {
 .hr-page-body {
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 18px;
 }
 
 .hr-section {
@@ -3482,19 +3482,19 @@ html:not([data-theme="dark"]) body {
     border-radius: 18px;
     background: rgba(255, 255, 255, 0.95);
     box-shadow: 0 4px 18px rgba(14, 34, 68, 0.045);
-    padding: 32px 34px 28px;
+    padding: 26px 28px 24px;
 }
 
 .hr-shift-section {
-    min-height: 281px;
+    min-height: 238px;
 }
 
 .hr-attendance-section {
-    min-height: 187px;
+    min-height: 164px;
 }
 
 .hr-incidents-section {
-    min-height: 183px;
+    min-height: 160px;
 }
 
 .hr-checklist-section {
@@ -3510,10 +3510,10 @@ html:not([data-theme="dark"]) body {
 }
 
 .hr-section-title {
-    margin: 0 0 18px;
+    margin: 0 0 16px;
     color: #5d7088;
-    font-size: 18px;
-    line-height: 24px;
+    font-size: 16px;
+    line-height: 22px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.01em;
@@ -3531,12 +3531,12 @@ html:not([data-theme="dark"]) body {
 }
 
 .hr-shift-state {
-    min-height: 170px;
+    min-height: 144px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 26px;
+    gap: 20px;
     text-align: center;
 }
 
@@ -3545,24 +3545,24 @@ html:not([data-theme="dark"]) body {
 .hr-shift-done-range {
     margin: 0;
     color: #6980a0;
-    font-size: 22px;
-    line-height: 32px;
+    font-size: 18px;
+    line-height: 28px;
     font-weight: 500;
 }
 
 .hr-shift-primary-btn,
 .hr-shift-secondary-btn {
-    min-width: 399px;
-    height: 76px;
+    min-width: 330px;
+    height: 64px;
     border: none;
-    border-radius: 14px;
-    padding: 0 30px;
+    border-radius: 13px;
+    padding: 0 26px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 16px;
-    font-size: 23px;
-    line-height: 28px;
+    gap: 12px;
+    font-size: 20px;
+    line-height: 24px;
     font-weight: 800;
     letter-spacing: -0.02em;
     cursor: pointer;
@@ -3581,8 +3581,8 @@ html:not([data-theme="dark"]) body {
 }
 
 .hr-shift-btn-icon {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -3629,9 +3629,9 @@ html:not([data-theme="dark"]) body {
 }
 
 .hr-empty-icon {
-    width: 72px;
-    height: 72px;
-    flex: 0 0 72px;
+    width: 60px;
+    height: 60px;
+    flex: 0 0 60px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -3641,14 +3641,14 @@ html:not([data-theme="dark"]) body {
 }
 
 .hr-empty-icon svg {
-    width: 38px;
-    height: 38px;
+    width: 32px;
+    height: 32px;
 }
 
 .hr-empty-text {
     color: #6980a0;
-    font-size: 20px;
-    line-height: 30px;
+    font-size: 18px;
+    line-height: 28px;
     font-weight: 500;
 }
 
@@ -3700,8 +3700,8 @@ html:not([data-theme="dark"]) body {
 }
 
 .hr-person-row {
-    min-height: 64px;
-    padding: 14px 0;
+    min-height: 56px;
+    padding: 12px 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -3719,8 +3719,8 @@ html:not([data-theme="dark"]) body {
 
 .hr-person-name {
     color: #071327;
-    font-size: 17px;
-    line-height: 22px;
+    font-size: 16px;
+    line-height: 21px;
     font-weight: 700;
 }
 
@@ -3738,8 +3738,8 @@ html:not([data-theme="dark"]) body {
     flex-wrap: wrap;
     justify-content: flex-end;
     color: #61738a;
-    font-size: 15px;
-    line-height: 20px;
+    font-size: 14px;
+    line-height: 19px;
     font-weight: 600;
 }
 
@@ -3769,14 +3769,14 @@ html:not([data-theme="dark"]) body {
 }
 
 .hr-outline-btn {
-    min-height: 56px;
-    padding: 0 28px;
+    min-height: 50px;
+    padding: 0 24px;
     border: 2px solid #5f97ff;
     border-radius: 14px;
     background: #ffffff;
     color: #1769ff;
-    font-size: 20px;
-    line-height: 24px;
+    font-size: 18px;
+    line-height: 22px;
     font-weight: 800;
     cursor: pointer;
 }
