@@ -42,11 +42,16 @@ function fmtElapsed(ms) {
 
 function parseTs(value) {
   if (!value) return null;
-  const raw = String(value).replace(' ', 'T');
-  // backend хранит время в UTC без таймзоны → добавим Z, иначе JS считает локальным
-  const withTz = /[zZ]|[+-]\d{2}:?\d{2}$/.test(raw) ? raw : raw + 'Z';
-  const d = new Date(withTz);
-  return isNaN(d) ? null : d;
+  let raw = String(value).trim().replace(' ', 'T');
+  // Postgres CURRENT_TIMESTAMP::text возвращает таймзону как "+00" без минут — JS не парсит.
+  // Нормализуем в "+HH:MM": "+0500" → "+05:00", "+05" → "+05:00".
+  raw = raw.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+  raw = raw.replace(/([+-]\d{2})$/, '$1:00');
+  // Если таймзоны нет вообще — считаем UTC.
+  const hasTz = /[Zz]$|[+-]\d{2}:\d{2}$/.test(raw);
+  if (!hasTz) raw += 'Z';
+  const d = new Date(raw);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 export default function More() {
@@ -115,7 +120,7 @@ export default function More() {
     const elapsed = start ? fmtElapsed(now - start.getTime()) : '00:00:00';
     shiftCard = (
       <div className="more-shift-card more-shift-active" onClick={goToHr}>
-        <div className="more-shift-icon" style={{ background: '#10b98133' }}>🟢</div>
+        <div className="more-shift-icon more-shift-icon-clock">🕐</div>
         <div className="more-shift-text">
           <div className="more-shift-title">
             {tr(lang,'Работаю','Иштеп жатам')}

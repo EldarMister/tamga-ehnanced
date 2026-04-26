@@ -1773,6 +1773,13 @@ select.input {
     justify-content: center;
     min-height: 70px;
 }
+/* Зелёная "часовая" иконка для активной смены — ближе к референсу */
+.more-shift-icon-clock {
+    background: radial-gradient(circle, #34d399 0%, #10b981 100%);
+    color: #fff;
+    font-size: 24px;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+}
 .more-shift-active {
     background: linear-gradient(135deg, #d8eafe 0%, #b9d4ff 100%);
 }
