@@ -69,7 +69,7 @@ const SHIFT_TASK_SEED = [
 // Услуги (прайс-лист). Колонки: code, name_ru, name_ky, category, unit,
 // price_retail, price_dealer, cost_price, min_order, options.
 const SERVICES_SEED = [
-  ['banner',   'Баннер',                'Баннер',                'banner',        'м²',   450,  300, 150, 1, '{"lyuvers": 50}'],
+  ['banner',   'Баннер',                'Баннер',                'banner',        'м²',   450,  300, 150, 1, '{"lyuvers": {"label": "Люверсы (кольца)", "price": 50}}'],
   ['vinyl',    'Самоклейка',            'Өзү жабышчаак',         'vinyl',         'м²',   600,  400, 200, 1, '{}'],
   ['mesh',     'Сеточная самоклейка',   'Тор өзү жабышчаак',     'mesh',          'м²',   700,  500, 250, 1, '{}'],
   ['table',    'Таблички (ПВХ)',        'Табличкалар (ПВХ)',     'table',         'шт',   350,  0,   100, 1, '{}'],

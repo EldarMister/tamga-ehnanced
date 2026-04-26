@@ -120,7 +120,15 @@ function compute(svc, calc) {
     }
   } else {
     quantity = Math.max(0, parseFloat(calc.quantity) || 0);
-    if (serviceType === 'dtf') {
+    if (serviceType === 'letters') {
+      // Объёмные буквы: высота (см) × тариф (50 сом/см) × кол-во букв.
+      // calc.quantity = высота буквы, calc.copies = кол-во букв.
+      const height = Math.max(0, parseFloat(calc.quantity) || 0);
+      const count = Math.max(1, parseInt(calc.copies) || 1);
+      unitPrice = svc.price_retail || 50; // 50 сом за см высоты, как в референсе
+      baseCost = height * unitPrice * count;
+      quantity = height * count; // итоговое quantity для заказа: см × шт
+    } else if (serviceType === 'dtf') {
       const twoSide = Object.entries(calc.options || {}).some(([k, v]) => v && isTwoSideKey(k));
       unitPrice = twoSide ? (quantity >= 10 ? 400 : 500) : 350;
       baseCost = unitPrice * quantity;
@@ -172,6 +180,7 @@ export default function Calculator() {
   const result = useMemo(() => compute(svc, calc), [svc, calc]);
   const area = isAreaUnit(svc?.unit);
   const sheet = isSheetUnit(svc?.unit);
+  const isLetters = canonicalServiceType(svc) === 'letters';
 
   const setService = (id) => setCalc({ service_id: id, client_type: calc.client_type, width: '', height: '', copies: '1', quantity: '1', options: {} });
   const setClient = (t) => setCalc(c => ({ ...c, client_type: t }));
@@ -181,12 +190,19 @@ export default function Calculator() {
   const toOrder = () => {
     if (!svc) { showToast('Выберите услугу', 'warning'); return; }
     if (result.total === 0) { showToast('Укажите параметры расчёта', 'warning'); return; }
+    // Для letters передаём итоговую quantity = высота_см × кол-во_букв,
+    // чтобы на бэке total = quantity × unit_price (50) совпал с расчётом.
+    const orderQuantity = area
+      ? (calc.copies || '1')
+      : isLetters
+        ? String(result.quantity || 0)
+        : calc.quantity;
     const prefill = {
       service_id: String(calc.service_id),
       client_type: calc.client_type,
       width: calc.width || null,
       height: calc.height || null,
-      quantity: area ? (calc.copies || '1') : calc.quantity,
+      quantity: orderQuantity,
       options: calc.options,
     };
     sessionStorage.setItem('calc_prefill', JSON.stringify(prefill));
@@ -255,6 +271,25 @@ export default function Calculator() {
                 Площадь: <span className="font-medium">{result.area ?? 0} м²</span>
                 &nbsp;×&nbsp;<span>{calc.copies || 1}</span> шт
                 = <span className="font-medium">{result.quantity} м²</span>
+              </div>
+            </>
+          ) : isLetters ? (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="input-label">Высота буквы (см)</label>
+                  <input type="number" className="input" value={calc.quantity} placeholder="40" step="1" min="0"
+                         onChange={e => setField('quantity', e.target.value)} />
+                </div>
+                <div>
+                  <label className="input-label">Кол-во букв</label>
+                  <input type="number" className="input" value={calc.copies} placeholder="1" step="1" min="1"
+                         onChange={e => setField('copies', String(Math.max(1, parseInt(e.target.value) || 1)))} />
+                </div>
+              </div>
+              <div className="text-sm text-gray-500">
+                {calc.quantity || 0} см × {result.unitPrice} сом × {calc.copies || 1} букв
+                = <span className="font-medium">{formatCurrency(result.baseCost, lang)}</span>
               </div>
             </>
           ) : (
