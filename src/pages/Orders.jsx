@@ -509,7 +509,7 @@ function OrderCard({ order, lang, userRole, onOpen, onReload }) {
 
   return (
     <article
-      className={`orders-card ${overdue ? 'is-overdue' : ''}`}
+      className={`orders-card ${overdue ? 'is-overdue' : ''}${menuOpen ? ' is-menu-open' : ''}`}
       onClick={onOpen}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {

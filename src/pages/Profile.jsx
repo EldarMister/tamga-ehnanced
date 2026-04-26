@@ -10,10 +10,10 @@ import { getPushConfig, isPushSupported, subscribeToPush, unsubscribeFromPush } 
 const tr = (lang, ru, ky) => (lang === 'ky' ? ky : ru);
 
 const ICONS = {
-  edit: (
+  user: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 20h9" />
-      <path d="m16.5 3.5 4 4L8 20l-5 1 1-5 12.5-12.5Z" />
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
     </svg>
   ),
   globe: (
@@ -55,17 +55,6 @@ const ICONS = {
       <path d="M21 12H9" />
     </svg>
   ),
-  at: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M16 15.5c-.8.7-1.7 1-2.7 1-2.4 0-4.3-1.8-4.3-4.5s1.9-4.5 4.3-4.5S18 9.3 18 12v3.5c0 1.1.9 2 2 2" />
-    </svg>
-  ),
-  phone: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7l.7 4a2 2 0 0 1-.6 1.8l-1.8 1.8a16 16 0 0 0 5.7 5.7l1.8-1.8a2 2 0 0 1 1.8-.6l4 .7A2 2 0 0 1 22 16.9Z" />
-    </svg>
-  ),
 };
 
 function initial(name) {
@@ -78,7 +67,8 @@ export default function Profile() {
   const { showForm } = useModal();
   const navigate = useNavigate();
   const isDirector = user.role === 'director';
-  const displayName = user.full_name || user.username || tr(lang, 'Профиль', 'Профиль');
+  const displayName = user.full_name || user.username || 'Профиль';
+
   const [pushState, setPushState] = useState({
     loading: true,
     supported: isPushSupported(),
@@ -89,13 +79,7 @@ export default function Profile() {
 
   const loadPushState = async () => {
     if (!isPushSupported()) {
-      setPushState({
-        loading: false,
-        supported: false,
-        enabled: false,
-        permission: 'unsupported',
-        subscribed: false,
-      });
+      setPushState({ loading: false, supported: false, enabled: false, permission: 'unsupported', subscribed: false });
       return;
     }
     try {
@@ -106,9 +90,7 @@ export default function Profile() {
     }
   };
 
-  useEffect(() => {
-    loadPushState();
-  }, []);
+  useEffect(() => { loadPushState(); }, []);
 
   const switchLang = async (newLang) => {
     if (newLang === lang) return;
@@ -123,31 +105,14 @@ export default function Profile() {
     showForm({
       title: tr(lang, 'Редактировать профиль', 'Профилди оңдоо'),
       fields: [
-        {
-          name: 'username',
-          label: tr(lang, 'Логин', 'Колдонуучу'),
-          type: 'text',
-          required: true,
-          value: user.username,
-        },
-        {
-          name: 'phone',
-          label: tr(lang, 'Телефон', 'Телефон'),
-          type: 'text',
-          value: user.phone || '',
-        },
+        { name: 'username', label: tr(lang, 'Логин', 'Колдонуучу'), type: 'text', required: true, value: user.username },
+        { name: 'phone', label: tr(lang, 'Телефон', 'Телефон'), type: 'text', value: user.phone || '' },
       ],
       submitText: tr(lang, 'Сохранить', 'Сактоо'),
       onSubmit: async (data) => {
         try {
           const updated = await api.patch('/api/users/me', data);
-          if (updated) {
-            updateUser({
-              ...user,
-              username: updated.username,
-              phone: updated.phone,
-            });
-          }
+          if (updated) updateUser({ ...user, username: updated.username, phone: updated.phone });
           showToast(tr(lang, 'Профиль обновлён', 'Профиль жаңырды'), 'success');
         } catch {}
       },
@@ -158,18 +123,8 @@ export default function Profile() {
     showForm({
       title: tr(lang, 'Сменить пароль', 'Сырсөздү алмаштыруу'),
       fields: [
-        {
-          name: 'old_password',
-          label: tr(lang, 'Текущий пароль', 'Учурдагы сырсөз'),
-          type: 'password',
-          required: true,
-        },
-        {
-          name: 'new_password',
-          label: tr(lang, 'Новый пароль', 'Жаңы сырсөз'),
-          type: 'password',
-          required: true,
-        },
+        { name: 'old_password', label: tr(lang, 'Текущий пароль', 'Учурдагы сырсөз'), type: 'password', required: true },
+        { name: 'new_password', label: tr(lang, 'Новый пароль', 'Жаңы сырсөз'), type: 'password', required: true },
       ],
       submitText: tr(lang, 'Сменить', 'Алмаштыруу'),
       onSubmit: async (data) => {
@@ -181,10 +136,7 @@ export default function Profile() {
     });
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const handleLogout = () => { logout(); navigate('/login'); };
 
   const enablePush = async () => {
     try {
@@ -192,10 +144,7 @@ export default function Profile() {
       await loadPushState();
       showToast(tr(lang, 'Уведомления включены', 'Билдирмелер күйгүзүлдү'), 'success');
     } catch (error) {
-      showToast(
-        error.message || tr(lang, 'Не удалось включить уведомления', 'Билдирмелерди күйгүзүү ишке ашкан жок'),
-        'error',
-      );
+      showToast(error.message || tr(lang, 'Не удалось включить уведомления', 'Билдирмелерди күйгүзүү ишке ашкан жок'), 'error');
       await loadPushState();
     }
   };
@@ -206,101 +155,52 @@ export default function Profile() {
       await loadPushState();
       showToast(tr(lang, 'Уведомления отключены', 'Билдирмелер өчүрүлдү'), 'success');
     } catch (error) {
-      showToast(
-        error.message || tr(lang, 'Не удалось отключить уведомления', 'Билдирмелерди өчүрүү ишке ашкан жок'),
-        'error',
-      );
+      showToast(error.message || tr(lang, 'Не удалось отключить уведомления', 'Билдирмелерди өчүрүү ишке ашкан жок'), 'error');
     }
   };
 
-  let pushTone = 'muted';
-  let pushBadge = tr(lang, 'Проверка', 'Текшерүү');
   let pushStatus = tr(lang, 'Проверяем состояние уведомлений…', 'Билдирмелердин абалын текшерип жатабыз…');
-
   if (!pushState.supported) {
-    pushTone = 'warning';
-    pushBadge = tr(lang, 'Не поддерживается', 'Колдоого алынбайт');
-    pushStatus = tr(
-      lang,
-      'Этот браузер не поддерживает push-уведомления.',
-      'Бул браузер push-билдирмелерди колдобойт.',
-    );
+    pushStatus = tr(lang, 'Этот браузер не поддерживает push-уведомления.', 'Бул браузер push-билдирмелерди колдобойт.');
   } else if (!pushState.enabled) {
-    pushTone = 'warning';
-    pushBadge = tr(lang, 'Недоступно', 'Жеткиликсиз');
-    pushStatus = tr(
-      lang,
-      'Push-сервер ещё не настроен.',
-      'Push-сервер али толук жөндөлө элек.',
-    );
+    pushStatus = tr(lang, 'Push-сервер ещё не настроен.', 'Push-сервер али толук жөндөлө элек.');
   } else if (pushState.permission === 'denied') {
-    pushTone = 'warning';
-    pushBadge = tr(lang, 'Запрещено', 'Тыюу салынган');
-    pushStatus = tr(
-      lang,
-      'Разрешение браузера отключено. Включите уведомления в настройках сайта.',
-      'Браузер уруксаты өчүрүлгөн. Сайттын жөндөөлөрүнөн билдирмелерди кайра күйгүзүңүз.',
-    );
+    pushStatus = tr(lang, 'Разрешение браузера отключено. Включите уведомления в настройках сайта.', 'Браузер уруксаты өчүрүлгөн. Сайттын жөндөөлөрүнөн билдирмелерди кайра күйгүзүңүз.');
   } else if (pushState.subscribed) {
-    pushTone = 'positive';
-    pushBadge = tr(lang, 'Активно', 'Жигердүү');
-    pushStatus = tr(
-      lang,
-      'Уведомления будут приходить даже при закрытом сайте.',
-      'Сайт жабык болсо да билдирмелер келип турат.',
-    );
+    pushStatus = tr(lang, 'Уведомления будут приходить даже при закрытом сайте.', 'Сайт жабык болсо да билдирмелер келип турат.');
   } else {
-    pushTone = 'muted';
-    pushBadge = tr(lang, 'Выключено', 'Өчүк');
-    pushStatus = tr(
-      lang,
-      'Нажмите кнопку ниже, чтобы получать уведомления на телефон и компьютер.',
-      'Телефонго жана компьютерге билдирмелерди алуу үчүн төмөнкү баскычты басыңыз.',
-    );
+    pushStatus = tr(lang, 'Нажмите кнопку ниже, чтобы получать уведомления на телефон и компьютер.', 'Телефонго жана компьютерге билдирмелерди алуу үчүн төмөнкү баскычты басыңыз.');
   }
+
+  const showPushButton = pushState.supported && pushState.enabled && pushState.permission !== 'denied';
 
   return (
     <main className="profile-page">
-      <header className="page-header profile-page-header">
-        <div className="profile-page-heading">
-          <span className="profile-page-eyebrow">{tr(lang, 'Аккаунт', 'Аккаунт')}</span>
-          <h1 className="page-title profile-page-title">{tr(lang, 'Профиль', 'Профиль')}</h1>
-        </div>
-        <div></div>
+      <header className="profile-page-header">
+        <h1 className="profile-page-title">{tr(lang, 'Профиль', 'Профиль')}</h1>
       </header>
 
       <div className="profile-page-content">
+
+        {/* Hero card */}
         <section className="profile-hero-card">
-          <div className="profile-hero-highlight" aria-hidden="true"></div>
           <div className="profile-avatar">{initial(displayName)}</div>
           <div className="profile-hero-name">{displayName}</div>
           <div className="profile-hero-role">{roleLabel(user.role, lang)}</div>
-          <div className="profile-hero-meta">
-            <div className="profile-hero-pill">
-              <span className="profile-hero-pill-icon">{ICONS.at}</span>
-              <span>{user.username}</span>
-            </div>
-            {user.phone && (
-              <div className="profile-hero-pill">
-                <span className="profile-hero-pill-icon">{ICONS.phone}</span>
-                <span>{user.phone}</span>
-              </div>
-            )}
-          </div>
+          <div className="profile-hero-username">{user.username}</div>
         </section>
 
+        {/* Edit button — director only */}
         {isDirector && (
           <button type="button" className="profile-primary-action" onClick={editProfile}>
-            <span className="profile-primary-action-icon">{ICONS.edit}</span>
+            <span className="profile-primary-action-icon">{ICONS.user}</span>
             <span>{tr(lang, 'Редактировать профиль', 'Профилди оңдоо')}</span>
           </button>
         )}
 
+        {/* Language */}
         <section className="profile-card">
-          <div className="profile-card-head">
-            <div className="profile-card-label">{tr(lang, 'Язык / Тил', 'Тил / Язык')}</div>
-          </div>
-
+          <div className="profile-card-label">{tr(lang, 'Язык / Тил', 'Тил / Язык')}</div>
           <div className="profile-language-switch" role="tablist" aria-label={tr(lang, 'Выбор языка', 'Тилди тандоо')}>
             <button
               type="button"
@@ -323,19 +223,12 @@ export default function Profile() {
           </div>
         </section>
 
+        {/* Push notifications */}
         <section className="profile-card">
-          <div className="profile-card-head">
-            <div className="profile-card-label">
-              {tr(lang, 'Push-уведомления', 'Push-билдирмелер')}
-            </div>
-            <div className={`profile-status-badge profile-status-badge-${pushTone}`}>{pushBadge}</div>
+          <div className="profile-card-label profile-card-label-accent">
+            {tr(lang, 'Push-уведомления', 'Push-билдирмелер')}
           </div>
-
-          <div className={`profile-push-summary profile-push-summary-${pushTone}`}>
-            <span className="profile-push-summary-icon">{ICONS.bell}</span>
-            <span>{pushStatus}</span>
-          </div>
-
+          <p className="profile-push-body">{pushStatus}</p>
           <p className="profile-card-note">
             {tr(
               lang,
@@ -343,8 +236,7 @@ export default function Profile() {
               'Үн чыгышы үчүн браузерде жана тутумда сайттын билдирмелерине уруксат бериңиз.',
             )}
           </p>
-
-          {pushState.supported && pushState.enabled && pushState.permission !== 'denied' && (
+          {showPushButton && (
             <button
               type="button"
               className={`profile-push-action ${pushState.subscribed ? 'is-secondary' : ''}`}
@@ -361,34 +253,25 @@ export default function Profile() {
           )}
         </section>
 
-        <section className="profile-shortcuts-card">
-          <button type="button" className="profile-shortcut-row" onClick={() => navigate('/training')}>
-            <span className="profile-shortcut-icon profile-shortcut-icon-blue">{ICONS.cap}</span>
-            <span className="profile-shortcut-copy">
-              <span className="profile-shortcut-title">{tr(lang, 'Уроки', 'Сабактар')}</span>
-              <span className="profile-shortcut-text">
-                {tr(lang, 'Видео и фото инструкции', 'Видео жана сүрөт нускамалар')}
-              </span>
-            </span>
-            <span className="profile-shortcut-chevron">{ICONS.chevron}</span>
-          </button>
+        {/* Shortcuts — each its own card */}
+        <button type="button" className="profile-shortcut-card" onClick={() => navigate('/training')}>
+          <span className="profile-shortcut-icon profile-shortcut-icon-blue">{ICONS.cap}</span>
+          <span className="profile-shortcut-title">{tr(lang, 'Уроки', 'Сабактар')}</span>
+          <span className="profile-shortcut-chevron">{ICONS.chevron}</span>
+        </button>
 
-          <button type="button" className="profile-shortcut-row" onClick={changePassword}>
-            <span className="profile-shortcut-icon profile-shortcut-icon-slate">{ICONS.lock}</span>
-            <span className="profile-shortcut-copy">
-              <span className="profile-shortcut-title">{tr(lang, 'Сменить пароль', 'Сырсөздү алмаштыруу')}</span>
-              <span className="profile-shortcut-text">
-                {tr(lang, 'Обновить доступ к аккаунту', 'Аккаунтка кирүү мүмкүнчүлүгүн жаңыртуу')}
-              </span>
-            </span>
-            <span className="profile-shortcut-chevron">{ICONS.chevron}</span>
-          </button>
-        </section>
+        <button type="button" className="profile-shortcut-card" onClick={changePassword}>
+          <span className="profile-shortcut-icon profile-shortcut-icon-blue">{ICONS.lock}</span>
+          <span className="profile-shortcut-title">{tr(lang, 'Сменить пароль', 'Сырсөздү алмаштыруу')}</span>
+          <span className="profile-shortcut-chevron">{ICONS.chevron}</span>
+        </button>
 
+        {/* Logout */}
         <button type="button" className="profile-danger-action" onClick={handleLogout}>
           <span className="profile-danger-action-icon">{ICONS.logout}</span>
           <span>{tr(lang, 'Выйти', 'Чыгуу')}</span>
         </button>
+
       </div>
     </main>
   );
