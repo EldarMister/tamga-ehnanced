@@ -8,10 +8,27 @@ Node.js + Express + Postgres backend для tamga-react.
 
 ## Запуск локально
 
-1. Подними Postgres (`docker run -p 5432:5432 -e POSTGRES_PASSWORD=pass postgres:16`).
-2. `cp .env.example .env` и пропиши `DATABASE_URL`.
-3. `npm install`
-4. `npm run dev` (с `--watch`) или `npm start`.
+### Unified (один процесс отдаёт и фронт, и API)
+Из корня репо:
+```
+npm install
+npm run build           # собирает dist/ и ставит prod-deps бэка
+npm start               # запускает node server/index.js на :8000
+```
+Открыть http://localhost:8000 — там и фронт, и API.
+
+### Раздельно (для разработки фронта с горячей перезагрузкой)
+```
+npm install                             # фронт-deps в корне
+npm --prefix server install             # бэк-deps в server/
+cp server/.env.example server/.env      # задать DATABASE_URL
+```
+Затем в двух терминалах:
+```
+npm run dev:server     # бэк на :8000 с node --watch
+npm run dev            # фронт на :5173 с прокси /api → :8000
+```
+Подними Postgres локально: `docker run -p 5432:5432 -e POSTGRES_PASSWORD=pass postgres:16`.
 
 При первом запуске:
 - создаются все таблицы из `schema.sql`,
@@ -51,10 +68,18 @@ Node.js + Express + Postgres backend для tamga-react.
 - `payroll:paid` — зарплата выплачена (только этому юзеру)
 - `announcement:new` — новое объявление
 
-## Деплой на Railway
+## Деплой на Railway (unified, один сервис)
 
-1. Создай новый сервис из репо `tamga-ehnanced`, **Root Directory** = `server`.
-2. Подключи Postgres-плагин — он автоматически прокинет `DATABASE_URL`.
-3. Выстави env: `SECRET_KEY=<random>`, `CORS_ORIGINS=https://<frontend>.up.railway.app`.
-4. Build: `npm install`, Start: `npm start`.
-5. URL бэкенда добавь во фронт-сервис как `VITE_API_BASE`.
+Фронт и бэк живут в одном Railway-сервисе: бэк отдаёт собранный `dist/` как статику + SPA-fallback, плюс свой `/api/*`.
+
+1. Создай **один** сервис из репо `tamga-ehnanced`. **Root Directory** не трогай (корень репо).
+2. Добавь Postgres-плагин — он автоматически пробросит `DATABASE_URL`.
+3. Выстави env (`SECRET_KEY` обязательно):
+   ```
+   SECRET_KEY=<случайная строка>
+   ```
+   `VITE_API_BASE` и `CORS_ORIGINS` не нужны — same-origin.
+4. Railway сам подхватит `package.json` корня:
+   - **Build**: `npm install && npm run build` (билдит фронт + ставит prod-deps бэка)
+   - **Start**: `npm start` (запускает `node server/index.js`)
+5. Открываешь URL → логин `admin / 12345` → меняй пароль директора в Профиле.
