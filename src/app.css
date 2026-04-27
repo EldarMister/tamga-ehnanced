@@ -3693,7 +3693,7 @@ html:not([data-theme="dark"]) body {
 
 /* ── Сотрудники: лейблы и цифры ── */
 [data-theme="dark"] .dashboard-employee-stats span {
-    color: var(--text-secondary);
+    color: var(--text-primary);
 }
 [data-theme="dark"] .dashboard-employee-stats strong {
     color: var(--text-primary);
