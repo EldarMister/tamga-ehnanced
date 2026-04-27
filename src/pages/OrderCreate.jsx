@@ -76,25 +76,145 @@ function isAreaUnit(unit) {
   return normalized.includes('м2') || normalized.includes('м²') || normalized.includes('m2') || normalized.includes('m²');
 }
 
-function getServiceUnitPrice(service, clientType) {
+// Определяем тип услуги по коду/названию (та же логика что в Calculator.jsx)
+function canonicalServiceType(service) {
+  if (!service) return '';
+  const src = `${service.code || ''} ${service.category || ''} ${service.name_ru || ''}`.toLowerCase();
+  const has = (...pp) => pp.some(p => src.includes(p));
+  if (has('banner', 'баннер'))                           return 'banner';
+  if (has('perfo', 'перфо'))                             return 'setka';
+  if (has('samokley', 'samokle', 'vinyl', 'самоклей'))   return 'samokleyka';
+  if (has('setka', 'mesh', 'сетк'))                      return 'setka';
+  if (has('stend', 'stand', 'forex', 'стенд'))           return 'stend';
+  if (has('plotter', 'плоттер', 'rezka', 'резка'))       return 'plotter';
+  if (has('letters', 'букв'))                            return 'letters';
+  if (has('tablich', 'таблич'))                          return 'tablichka';
+  if (has('menu', 'меню'))                               return 'menu';
+  if (has('vizit', 'визит'))                             return 'vizitka';
+  if (has('color_print', 'colorprint', 'цветн'))         return 'colorprint';
+  if (has('print', 'распечат', 'raspechat'))             return 'print';
+  if (has('dtf'))                                        return 'dtf';
+  return '';
+}
+
+// Базовая цена для отображения в дропдауне (без скидок — скидка зависит от площади)
+function getBaseDisplayPrice(service, clientType) {
   if (!service) return 0;
+  const t = canonicalServiceType(service);
+  if (clientType === 'dealer') {
+    if (t === 'banner')     return 300;
+    if (t === 'samokleyka') return 400;
+    if (t === 'setka')      return 500;
+    if (t === 'stend')      return 1800;
+    if (t === 'plotter')    return 1000;
+    if (t === 'menu')       return 150;
+    if (t === 'vizitka')    return 5;
+    if (t === 'colorprint') return 50;
+    if (t === 'print')      return 10;
+    if (t === 'tablichka')  return 350;
+    if (t === 'dtf')        return 350;
+  } else {
+    if (t === 'banner')     return 450;
+    if (t === 'samokleyka') return 600;
+    if (t === 'setka')      return 700;
+    if (t === 'stend')      return 1800;
+    if (t === 'plotter')    return 1000;
+    if (t === 'menu')       return 150;
+    if (t === 'vizitka')    return 5;
+    if (t === 'colorprint') return 50;
+    if (t === 'print')      return 10;
+    if (t === 'tablichka')  return 350;
+    if (t === 'dtf')        return 350;
+  }
+  // Неизвестная услуга — берём из БД
   return clientType === 'dealer' && service.price_dealer > 0 ? service.price_dealer : service.price_retail;
 }
 
-function calcLine(item, service, clientType) {
-  if (!service) return { unitPrice: 0, lineTotal: 0, areaRequired: false };
+// Оставляем для совместимости (используется только как fallback)
+function getServiceUnitPrice(service, clientType) {
+  return getBaseDisplayPrice(service, clientType);
+}
 
-  const unitPrice = getServiceUnitPrice(service, clientType);
-  const qty = parseFloat(item.quantity) || 0;
+// Расчёт строки с полными формулами из КАЛК.html
+function calcLine(item, service, clientType) {
+  if (!service) return { unitPrice: 0, lineTotal: 0, areaRequired: false, discount: false, hasMin: false };
+
+  const qty   = parseFloat(item.quantity) || 0;
   const areaRequired = isAreaUnit(service.unit);
+  const t     = canonicalServiceType(service);
+  let unitPrice = 0;
+  let lineTotal = 0;
+  let discount  = false;
+  let hasMin    = false;
 
   if (areaRequired) {
-    const width = parseFloat(item.width) || 0;
-    const height = parseFloat(item.height) || 0;
-    return { unitPrice, lineTotal: width * height * qty * unitPrice, areaRequired };
+    const w       = parseFloat(item.width)  || 0;
+    const h       = parseFloat(item.height) || 0;
+    const areaRaw = w * h;
+    const copies  = qty;                       // кол-во штук
+
+    if (clientType === 'dealer') {
+      // ── ДИЛЕР ──────────────────────────────────────────────
+      if (t === 'banner') {
+        unitPrice = 300;
+        if (areaRaw > 0 && areaRaw < 1) {      // минимальная цена
+          hasMin    = true;
+          lineTotal = 350 * copies;
+        } else {
+          lineTotal = areaRaw * 300 * copies;
+        }
+      } else if (t === 'samokleyka') { unitPrice = 400;  lineTotal = areaRaw * 400  * copies; }
+      else if   (t === 'setka')      { unitPrice = 500;  lineTotal = areaRaw * 500  * copies; }
+      else if   (t === 'stend')      { unitPrice = 1800; lineTotal = areaRaw * 1800 * copies; }
+      else if   (t === 'plotter')    { unitPrice = 1000; lineTotal = areaRaw * 1000 * copies; }
+      else {
+        unitPrice = getBaseDisplayPrice(service, clientType);
+        lineTotal = areaRaw * qty * unitPrice;
+      }
+    } else {
+      // ── РОЗНИЦА (скидка при площади > 20 м²) ───────────────
+      if (t === 'banner') {
+        discount  = areaRaw > 20;
+        unitPrice = discount ? 400 : 450;
+        lineTotal = areaRaw * unitPrice * copies;
+      } else if (t === 'samokleyka') {
+        discount  = areaRaw > 20;
+        unitPrice = discount ? 500 : 600;
+        lineTotal = areaRaw * unitPrice * copies;
+      } else if (t === 'setka') {
+        discount  = areaRaw > 20;
+        unitPrice = discount ? 600 : 700;
+        lineTotal = areaRaw * unitPrice * copies;
+      } else if (t === 'stend')   { unitPrice = 1800; lineTotal = areaRaw * 1800 * copies; }
+      else if   (t === 'plotter') { unitPrice = 1000; lineTotal = areaRaw * 1000 * copies; }
+      else {
+        unitPrice = getBaseDisplayPrice(service, clientType);
+        lineTotal = areaRaw * qty * unitPrice;
+      }
+    }
+  } else {
+    // ── ШТУЧНЫЕ УСЛУГИ ─────────────────────────────────────
+    if (t === 'letters') {
+      // Объёмные буквы: quantity = высота_см × кол-во (уже пересчитано в калькуляторе)
+      unitPrice = service.price_retail || 50;
+      lineTotal = unitPrice * qty;
+    } else if (t === 'menu')       { unitPrice = 150; lineTotal = 150 * qty; }
+    else if   (t === 'vizitka')    { unitPrice = 5;   lineTotal = 5   * qty; }
+    else if   (t === 'colorprint') { unitPrice = 50;  lineTotal = 50  * qty; }
+    else if   (t === 'print') {
+      // Распечатка: ≥100 листов → 5 сом, иначе 10 сом (1-стор.)
+      discount  = qty >= 100;
+      unitPrice = discount ? 5 : 10;
+      lineTotal = unitPrice * qty;
+    } else if (t === 'tablichka')  { unitPrice = 350; lineTotal = 350 * qty; }
+    else if   (t === 'dtf')        { unitPrice = 350; lineTotal = 350 * qty; }
+    else {
+      unitPrice = getBaseDisplayPrice(service, clientType);
+      lineTotal = qty * unitPrice;
+    }
   }
 
-  return { unitPrice, lineTotal: qty * unitPrice, areaRequired };
+  return { unitPrice, lineTotal: Math.round(lineTotal), areaRequired, discount, hasMin };
 }
 
 function newItem(serviceId = '') {
@@ -403,7 +523,7 @@ export default function OrderCreate() {
                             <option value="">Выберите услугу</option>
                             {services.map((entry) => (
                               <option key={entry.id} value={entry.id}>
-                                {entry.name_ru} ({formatCurrency(getServiceUnitPrice(entry, clientType), lang)}/{entry.unit})
+                                {entry.name_ru} ({formatCurrency(getBaseDisplayPrice(entry, clientType), lang)}/{entry.unit})
                               </option>
                             ))}
                           </select>
@@ -451,7 +571,11 @@ export default function OrderCreate() {
 
                         <div className="order-create-service-cell order-create-service-cell-price">
                           <span className="order-create-mobile-label">Цена</span>
-                          <div className="order-create-valuebox">{formatCurrency(line.unitPrice, lang)}</div>
+                          <div className="order-create-valuebox">
+                            {formatCurrency(line.unitPrice, lang)}
+                            {line.discount && <span className="order-create-badge-discount" title="Скидка за объём > 20 м²">★</span>}
+                            {line.hasMin && <span className="order-create-badge-min" title="Минимальная цена &lt; 1 м²">min</span>}
+                          </div>
                         </div>
 
                         <div className="order-create-service-cell order-create-service-cell-total">

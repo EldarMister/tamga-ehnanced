@@ -4695,7 +4695,30 @@ body:has(.hr-page) .global-theme-toggle {
     min-height: 42px;
     border-radius: 12px;
     font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
 }
+
+.order-create-badge-discount {
+    font-size: 11px;
+    color: #16a34a;
+    font-weight: 700;
+    line-height: 1;
+    title: attr(title);
+}
+.order-create-badge-min {
+    font-size: 10px;
+    background: rgba(234,88,12,0.12);
+    color: #ea580c;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+[data-theme="dark"] .order-create-badge-discount { color: #4ade80; }
+[data-theme="dark"] .order-create-badge-min { background: rgba(251,146,60,0.15); color: #fb923c; }
 
 .order-create-page .input {
     padding: 10px 14px;
