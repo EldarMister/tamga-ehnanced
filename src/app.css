@@ -3691,6 +3691,45 @@ html:not([data-theme="dark"]) body {
     color: var(--text-secondary);
 }
 
+/* ── Сотрудники: лейблы и цифры ── */
+[data-theme="dark"] .dashboard-employee-stats span {
+    color: var(--text-secondary);
+}
+[data-theme="dark"] .dashboard-employee-stats strong {
+    color: var(--text-primary);
+}
+[data-theme="dark"] .dashboard-employee-stats {
+    border-top-color: var(--border);
+}
+[data-theme="dark"] .dashboard-employee-stats div {
+    border-right-color: var(--border);
+}
+[data-theme="dark"] .dashboard-employee-empty {
+    color: var(--text-secondary);
+}
+
+/* ── Пустые состояния: иконка ── */
+[data-theme="dark"] .dashboard-empty-illustration {
+    color: var(--text-tertiary);
+}
+
+/* ── Центральный круг диаграммы расходов ── */
+[data-theme="dark"] .dashboard-expense-inner {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+[data-theme="dark"] .dashboard-expense-inner span {
+    color: var(--text-secondary);
+}
+
+/* ── Бордеры карточек ── */
+[data-theme="dark"] .dashboard-employee-card {
+    border-color: var(--border);
+}
+[data-theme="dark"] .dashboard-employee-list .dashboard-employee-card + .dashboard-employee-card {
+    border-top-color: var(--border);
+}
+
 @media (max-width: 1024px) {
     .dashboard-page {
         width: auto;
