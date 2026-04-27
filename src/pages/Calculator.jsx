@@ -51,13 +51,17 @@ function canonicalServiceType(svc) {
   const has = (...patterns) => patterns.some(p => source.includes(p));
 
   if (has('banner', 'баннер')) return 'banner';
+  if (has('perfo', 'перфо')) return 'setka';
   if (has('samokley', 'samokle', 'vinyl', 'самоклей')) return 'samokleyka';
   if (has('setka', 'mesh', 'сетк')) return 'setka';
   if (has('stend', 'stand', 'forex', 'стенд')) return 'stend';
+  if (has('plotter', 'плоттер', 'plot_cut', 'rezka', 'резка')) return 'plotter';
   if (has('letters', 'букв')) return 'letters';
   if (has('tablich', 'table', 'таблич')) return 'tablichka';
   if (has('menu', 'меню')) return 'menu';
   if (has('vizit', 'business_card', 'визит')) return 'vizitka';
+  if (has('color_print', 'colorprint', 'цветн')) return 'colorprint';
+  if (has('print', 'распечат', 'raspechat')) return 'print';
   if (has('dtf')) return 'dtf';
   return '';
 }
@@ -72,7 +76,7 @@ function isOptionAllowedForClient(rawOptions, key, clientType) {
 }
 
 function compute(svc, calc) {
-  if (!svc) return { unitPrice: 0, quantity: 0, area: null, baseCost: 0, optionsCost: 0, total: 0, options: [] };
+  if (!svc) return { unitPrice: 0, quantity: 0, area: null, baseCost: 0, optionsCost: 0, total: 0, options: [], rings: false, hasMin: false, discount: false };
 
   const defaultUnitPrice = (calc.client_type === 'dealer' && svc.price_dealer > 0) ? svc.price_dealer : svc.price_retail;
   const options = parseOptions(svc.options);
@@ -83,6 +87,9 @@ function compute(svc, calc) {
   let quantity = 0;
   let area = null;
   let baseCost = 0;
+  let rings = false;
+  let hasMin = false;
+  let discount = false;
 
   if (areaUnit) {
     const w = Math.max(0, parseFloat(calc.width) || 0);
@@ -93,29 +100,46 @@ function compute(svc, calc) {
     quantity = Math.round(areaRaw * copies * 100) / 100;
 
     if (calc.client_type === 'dealer') {
-      if (serviceType === 'banner') { unitPrice = 300; baseCost = areaRaw * 300 * copies; }
+      // ── ДИЛЕРСКИЕ ЦЕНЫ (новая формула из КАЛК.html)
+      if (serviceType === 'banner') {
+        // <1м² → фикс. 350 сом; иначе 300 без колец / 350 с кольцами
+        rings = !!calc.options?.rings;
+        const rate = rings ? 350 : 300;
+        unitPrice = rate;
+        if (areaRaw > 0 && areaRaw < 1) {
+          hasMin = true;
+          baseCost = 350 * copies;
+        } else {
+          baseCost = areaRaw * rate * copies;
+        }
+      }
       else if (serviceType === 'samokleyka') { unitPrice = 400; baseCost = areaRaw * 400 * copies; }
       else if (serviceType === 'setka') { unitPrice = 500; baseCost = areaRaw * 500 * copies; }
-      else if (serviceType === 'stend') { unitPrice = 1600; baseCost = areaRaw * 1600 * copies; }
+      else if (serviceType === 'stend') { unitPrice = 1800; baseCost = areaRaw * 1800 * copies; }
+      else if (serviceType === 'plotter') { unitPrice = 1000; baseCost = areaRaw * 1000 * copies; }
       else { baseCost = quantity * unitPrice; }
     } else {
+      // ── РОЗНИЧНЫЕ ЦЕНЫ (новая формула из КАЛК.html: скидка при >20м²)
       if (serviceType === 'banner') {
-        const rate = areaRaw >= 10 ? 400 : 450;
-        const oneItem = (areaRaw > 0 && areaRaw < 1) ? 400 : areaRaw * rate;
-        unitPrice = (areaRaw > 0 && areaRaw < 1) ? 400 : rate;
-        baseCost = oneItem * copies;
+        discount = areaRaw > 20;
+        const rate = discount ? 400 : 450;
+        unitPrice = rate;
+        baseCost = areaRaw * rate * copies;
       } else if (serviceType === 'samokleyka') {
-        const rate = areaRaw >= 10 ? 450 : 500;
-        const oneItem = (areaRaw > 0 && areaRaw < 1) ? 400 : areaRaw * rate;
-        unitPrice = (areaRaw > 0 && areaRaw < 1) ? 400 : rate;
-        baseCost = oneItem * copies;
+        discount = areaRaw > 20;
+        const rate = discount ? 500 : 600;
+        unitPrice = rate;
+        baseCost = areaRaw * rate * copies;
       } else if (serviceType === 'setka') {
-        const rate = areaRaw >= 10 ? 650 : 700;
-        const oneItem = (areaRaw > 0 && areaRaw < 1) ? 500 : areaRaw * rate;
-        unitPrice = (areaRaw > 0 && areaRaw < 1) ? 500 : rate;
-        baseCost = oneItem * copies;
+        // Перфосамоклейка / сетка
+        discount = areaRaw > 20;
+        const rate = discount ? 600 : 700;
+        unitPrice = rate;
+        baseCost = areaRaw * rate * copies;
       } else if (serviceType === 'stend') {
-        unitPrice = 2000; baseCost = areaRaw * 2000 * copies;
+        unitPrice = 1800; baseCost = areaRaw * 1800 * copies;
+      } else if (serviceType === 'plotter') {
+        unitPrice = 1000; baseCost = areaRaw * 1000 * copies;
       } else { baseCost = quantity * unitPrice; }
     }
   } else {
@@ -133,13 +157,28 @@ function compute(svc, calc) {
       unitPrice = twoSide ? (quantity >= 10 ? 400 : 500) : 350;
       baseCost = unitPrice * quantity;
     } else if (serviceType === 'tablichka') { unitPrice = 350; baseCost = unitPrice * quantity; }
-    else if (serviceType === 'menu') { unitPrice = 200; baseCost = unitPrice * quantity; }
+    else if (serviceType === 'menu') { unitPrice = 150; baseCost = unitPrice * quantity; }
     else if (serviceType === 'vizitka') {
+      // Визитки: 1-стор. — 5 сом, 2-стор. — 6 сом
       const preset = rawOptions?.vizitka_prices || {};
-      const onePrice = Number(preset.one) || 4;
+      const onePrice = Number(preset.one) || 5;
       const twoPrice = Number(preset.two) || 6;
       const twoSide = Object.entries(calc.options || {}).some(([k, v]) => v && isTwoSideKey(k));
       unitPrice = twoSide ? twoPrice : onePrice;
+      baseCost = unitPrice * quantity;
+    } else if (serviceType === 'print') {
+      // Распечатка: 1-стор. → 10 сом (≥100 листов → 5 сом), 2-стор. → 11 сом
+      const twoSide = Object.entries(calc.options || {}).some(([k, v]) => v && isTwoSideKey(k));
+      if (twoSide) {
+        unitPrice = 11;
+      } else {
+        discount = quantity >= 100;
+        unitPrice = discount ? 5 : 10;
+      }
+      baseCost = unitPrice * quantity;
+    } else if (serviceType === 'colorprint') {
+      // Цветная печать (300г): 50 сом/лист
+      unitPrice = 50;
       baseCost = unitPrice * quantity;
     } else { baseCost = quantity * unitPrice; }
   }
@@ -149,12 +188,14 @@ function compute(svc, calc) {
     if (!calc.options[opt.key] || opt.price <= 0) return;
     if (!isOptionAllowedForClient(rawOptions, opt.key, calc.client_type)) return;
     if (serviceType === 'dtf' && isTwoSideKey(opt.key)) return;
-    if (serviceType === 'vizitka' && opt.key === 'vizitka_prices') return;
+    if (serviceType === 'vizitka' && (opt.key === 'vizitka_prices' || isTwoSideKey(opt.key))) return;
+    if (serviceType === 'print' && isTwoSideKey(opt.key)) return;
+    if (serviceType === 'banner' && calc.client_type === 'dealer' && opt.key === 'rings') return;
     optionsCost += opt.price * (quantity > 0 ? quantity : 0);
   });
 
   const total = Math.round(baseCost + optionsCost);
-  return { unitPrice, quantity, area, baseCost, optionsCost, total, options };
+  return { unitPrice, quantity, area, baseCost, optionsCost, total, options, rings, hasMin, discount };
 }
 
 export default function Calculator() {
@@ -180,7 +221,11 @@ export default function Calculator() {
   const result = useMemo(() => compute(svc, calc), [svc, calc]);
   const area = isAreaUnit(svc?.unit);
   const sheet = isSheetUnit(svc?.unit);
-  const isLetters = canonicalServiceType(svc) === 'letters';
+  const stype = canonicalServiceType(svc);
+  const isLetters = stype === 'letters';
+  const isDealerBanner = stype === 'banner' && calc.client_type === 'dealer';
+  const isPrint = stype === 'print';
+  const isVizitka = stype === 'vizitka';
 
   const setService = (id) => setCalc({ service_id: id, client_type: calc.client_type, width: '', height: '', copies: '1', quantity: '1', options: {} });
   const setClient = (t) => setCalc(c => ({ ...c, client_type: t }));
@@ -272,6 +317,31 @@ export default function Calculator() {
                 &nbsp;×&nbsp;<span>{calc.copies || 1}</span> шт
                 = <span className="font-medium">{result.quantity} м²</span>
               </div>
+
+              {/* Люверсы — только для дилерского баннера */}
+              {isDealerBanner && (
+                <label className="flex items-center gap-3 cursor-pointer pt-1">
+                  <input
+                    type="checkbox"
+                    checked={!!calc.options?.rings}
+                    onChange={e => toggleOpt('rings', e.target.checked)}
+                  />
+                  <span className="flex-1">С люверсами (кольцами)</span>
+                  <span className="text-sm text-gray-500">350 сом/м²</span>
+                </label>
+              )}
+
+              {/* Подсказки по тарифу */}
+              {result.hasMin && (
+                <div className="text-sm text-orange-600 font-medium">
+                  ⚠ Площадь &lt; 1 м² — применяется минимальная цена 350 сом
+                </div>
+              )}
+              {result.discount && (
+                <div className="text-sm text-green-600 font-medium">
+                  ★ Применена скидка за объём (&gt; 20 м²)
+                </div>
+              )}
             </>
           ) : isLetters ? (
             <>
@@ -293,14 +363,39 @@ export default function Calculator() {
               </div>
             </>
           ) : (
-            <div>
-              <label className="input-label">Количество ({svc?.unit || 'шт'})</label>
-              <input type="number" className="input" value={calc.quantity} placeholder="1" step="1" min="0" onChange={e => setField('quantity', e.target.value)} />
-              {showMinWarn && (
-                <div className="mt-1 text-sm text-orange-600 font-medium">
-                  ⚠ Минимальный заказ: {svc.min_order} {svc.unit}
+            <div className="space-y-2">
+              {(isPrint || isVizitka) && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className={`btn flex-1 btn-toggle ${!calc.options?.two_side ? 'is-active' : ''}`}
+                    onClick={() => toggleOpt('two_side', false)}
+                  >
+                    1-стор. {isPrint ? '(10/5 сом)' : '(5 сом)'}
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn flex-1 btn-toggle ${calc.options?.two_side ? 'is-active' : ''}`}
+                    onClick={() => toggleOpt('two_side', true)}
+                  >
+                    2-стор. {isPrint ? '(11 сом)' : '(6 сом)'}
+                  </button>
                 </div>
               )}
+              <div>
+                <label className="input-label">Количество ({svc?.unit || 'шт'})</label>
+                <input type="number" className="input" value={calc.quantity} placeholder="1" step="1" min="0" onChange={e => setField('quantity', e.target.value)} />
+                {showMinWarn && (
+                  <div className="mt-1 text-sm text-orange-600 font-medium">
+                    ⚠ Минимальный заказ: {svc.min_order} {svc.unit}
+                  </div>
+                )}
+                {isPrint && result.discount && (
+                  <div className="mt-1 text-sm text-green-600 font-medium">
+                    ★ Скидка за объём: ≥ 100 листов → 5 сом/лист
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
