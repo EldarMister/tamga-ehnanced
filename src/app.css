@@ -386,6 +386,15 @@ body::-webkit-scrollbar {
     background: var(--bg-hover);
     border-color: var(--accent);
 }
+[data-theme="dark"] .btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border);
+}
+[data-theme="dark"] .btn-secondary:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+}
 
 .btn-outline {
     background: transparent;
