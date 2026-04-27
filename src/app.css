@@ -396,6 +396,29 @@ body::-webkit-scrollbar {
     border-color: var(--accent);
 }
 
+/* ── Toggle button (e.g. Розница / Дилер) ── */
+.btn-toggle {
+    background: var(--bg-secondary, #f1f5f9);
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border);
+    font-weight: 500;
+    transition: background 0.18s, color 0.18s, border-color 0.18s;
+}
+.btn-toggle:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--accent);
+}
+.btn-toggle.is-active {
+    background: var(--accent, #1769ff);
+    color: #fff;
+    border-color: transparent;
+    font-weight: 600;
+}
+.btn-toggle.is-active:hover {
+    background: var(--accent-hover, #1255d6);
+}
+
 .btn-outline {
     background: transparent;
     color: var(--accent);

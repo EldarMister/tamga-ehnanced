@@ -243,8 +243,8 @@ export default function Calculator() {
           <div>
             <label className="input-label">Тип клиента</label>
             <div className="flex gap-2">
-              <button className={`btn flex-1 ${calc.client_type === 'retail' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setClient('retail')}>Розница</button>
-              <button className={`btn flex-1 ${calc.client_type === 'dealer' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setClient('dealer')}>Дилер</button>
+              <button className={`btn flex-1 btn-toggle ${calc.client_type === 'retail' ? 'is-active' : ''}`} onClick={() => setClient('retail')}>Розница</button>
+              <button className={`btn flex-1 btn-toggle ${calc.client_type === 'dealer' ? 'is-active' : ''}`} onClick={() => setClient('dealer')}>Дилер</button>
             </div>
           </div>
         </div>
