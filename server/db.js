@@ -108,7 +108,12 @@ export async function initDb() {
   // pg.Pool.query поддерживает несколько statement'ов в одной строке.
   await pool.query(schema);
   await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS prepayment_amount REAL NOT NULL DEFAULT 0');
+  await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount REAL NOT NULL DEFAULT 0');
+  await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS extra_expense_amount REAL NOT NULL DEFAULT 0');
+  await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS extra_expense_note TEXT');
   await pool.query('UPDATE orders SET prepayment_amount = 0 WHERE prepayment_amount IS NULL');
+  await pool.query('UPDATE orders SET discount_amount = 0 WHERE discount_amount IS NULL');
+  await pool.query('UPDATE orders SET extra_expense_amount = 0 WHERE extra_expense_amount IS NULL');
 
   // Сидим shift_tasks один раз
   const { rows } = await pool.query('SELECT COUNT(*)::int AS n FROM shift_tasks');

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.jsx';
 import { useToast } from '../components/Toast.jsx';
@@ -250,8 +250,10 @@ function SectionHeading({ icon, title }) {
 
 export default function OrderCreate() {
   const navigate = useNavigate();
+  const { id } = useParams();
   const { lang } = useAuth();
   const showToast = useToast();
+  const isEditMode = Boolean(id);
 
   const [services, setServices] = useState([]);
   const [users, setUsers] = useState([]);
@@ -260,6 +262,12 @@ export default function OrderCreate() {
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [prepaymentInput, setPrepaymentInput] = useState('');
+  const [discountInput, setDiscountInput] = useState('');
+  const [expenseAmountInput, setExpenseAmountInput] = useState('');
+  const [expenseNote, setExpenseNote] = useState('');
+  const [assignedDesigner, setAssignedDesigner] = useState('');
+  const [assignedMaster, setAssignedMaster] = useState('');
+  const [assignedAssistant, setAssignedAssistant] = useState('');
   const [deadline, setDeadline] = useState('');
   const [notes, setNotes] = useState('');
   const [selectedPhotoName, setSelectedPhotoName] = useState('');
@@ -270,13 +278,40 @@ export default function OrderCreate() {
   useEffect(() => {
     (async () => {
       try {
-        const [serviceList, userList] = await Promise.all([
+        const [serviceList, userList, editOrder] = await Promise.all([
           api.get('/api/pricelist'),
           api.get('/api/users').catch(() => []),
+          isEditMode ? api.get(`/api/orders/${id}`) : Promise.resolve(null),
         ]);
 
         setServices(serviceList || []);
         setUsers(userList || []);
+
+        if (editOrder) {
+          setClientName(editOrder.client_name || '');
+          setClientPhone(editOrder.client_phone || '');
+          setClientType(editOrder.client_type || 'retail');
+          setPrepaymentInput(editOrder.prepayment_amount ? String(editOrder.prepayment_amount) : '');
+          setDiscountInput(editOrder.discount_amount ? String(editOrder.discount_amount) : '');
+          setExpenseAmountInput(editOrder.extra_expense_amount ? String(editOrder.extra_expense_amount) : '');
+          setExpenseNote(editOrder.extra_expense_note || '');
+          setDeadline(editOrder.deadline || '');
+          setNotes(editOrder.notes || '');
+          setAssignedDesigner(editOrder.assigned_designer ? String(editOrder.assigned_designer) : '');
+          setAssignedMaster(editOrder.assigned_master ? String(editOrder.assigned_master) : '');
+          setAssignedAssistant(editOrder.assigned_assistant ? String(editOrder.assigned_assistant) : '');
+          const editItems = Array.isArray(editOrder.items) && editOrder.items.length
+            ? editOrder.items.map((item) => ({
+                id: `edit_${item.id || `${item.service_id}_${Math.random().toString(16).slice(2)}`}`,
+                service_id: item.service_id || '',
+                width: item.width ?? '',
+                height: item.height ?? '',
+                quantity: item.quantity ?? '1',
+              }))
+            : [newItem(serviceList?.[0]?.id || '')];
+          setItems(editItems);
+          return;
+        }
 
         const prefillRaw = sessionStorage.getItem('calc_prefill');
         if (prefillRaw) {
@@ -304,7 +339,7 @@ export default function OrderCreate() {
         setItems([newItem('')]);
       }
     })();
-  }, []);
+  }, [id, isEditMode]);
 
   const getService = (id) => services.find((service) => service.id === parseInt(id, 10));
 
@@ -317,8 +352,12 @@ export default function OrderCreate() {
   }, [items, services]);
 
   const parsedPrepayment = parsePrepayment(prepaymentInput);
+  const parsedDiscount = parsePrepayment(discountInput);
+  const parsedExpenseAmount = parsePrepayment(expenseAmountInput);
   const safePrepayment = Number.isFinite(parsedPrepayment) && parsedPrepayment > 0 ? parsedPrepayment : 0;
-  const remainingAmount = Math.max(total - safePrepayment, 0);
+  const safeDiscount = Number.isFinite(parsedDiscount) && parsedDiscount > 0 ? parsedDiscount : 0;
+  const payableAmount = Math.max(total - safeDiscount, 0);
+  const remainingAmount = Math.max(payableAmount - safePrepayment, 0);
 
   const updateItem = (id, patch) => {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
@@ -347,6 +386,7 @@ export default function OrderCreate() {
   const summaryClient = clientName.trim() || 'Не указан';
   const summaryDeadline = formatDeadline(deadline);
   const formattedTotal = formatCurrency(total, lang);
+  const formattedPayable = formatCurrency(payableAmount, lang);
   const formattedRemaining = formatCurrency(remainingAmount, lang);
 
   const submit = async (event) => {
@@ -386,8 +426,20 @@ export default function OrderCreate() {
       if (!Number.isFinite(parsedPrepayment) || parsedPrepayment < 0) {
         throw new Error('Предоплата должна быть числом не меньше 0');
       }
-      if (parsedPrepayment > total) {
-        throw new Error('Предоплата не может быть больше суммы заказа');
+      if (!Number.isFinite(parsedDiscount) || parsedDiscount < 0) {
+        throw new Error('Скидка должна быть числом не меньше 0');
+      }
+      if (parsedDiscount > total) {
+        throw new Error('Скидка не может быть больше суммы заказа');
+      }
+      if (parsedPrepayment > payableAmount) {
+        throw new Error('Предоплата не может быть больше суммы к оплате');
+      }
+      if (!Number.isFinite(parsedExpenseAmount) || parsedExpenseAmount < 0) {
+        throw new Error('Расход должен быть числом не меньше 0');
+      }
+      if (parsedExpenseAmount > 0 && !expenseNote.trim()) {
+        throw new Error('Укажите комментарий к расходу');
       }
 
       const order = {
@@ -395,6 +447,9 @@ export default function OrderCreate() {
         client_phone: form.client_phone.value.trim(),
         client_type: clientType,
         prepayment_amount: parsedPrepayment,
+        discount_amount: parsedDiscount,
+        extra_expense_amount: parsedExpenseAmount,
+        extra_expense_note: expenseNote.trim(),
         items: payloadItems,
         notes: form.notes.value.trim(),
         deadline: form.deadline.value || null,
@@ -403,7 +458,7 @@ export default function OrderCreate() {
         assigned_assistant: form.assigned_assistant.value ? parseInt(form.assigned_assistant.value, 10) : null,
       };
 
-      const result = await api.post('/api/orders', order);
+      const result = isEditMode ? await api.put(`/api/orders/${id}`, order) : await api.post('/api/orders', order);
 
       if (result) {
         let warning = '';
@@ -420,7 +475,7 @@ export default function OrderCreate() {
           }
         }
 
-        showToast(`Заказ ${result.order_number} создан!${warning}`, warning ? 'warning' : 'success');
+        showToast(`Заказ ${result.order_number} ${isEditMode ? 'обновлён' : 'создан'}!${warning}`, warning ? 'warning' : 'success');
         navigate(`/orders/${result.id}`);
       }
     } catch (err) {
@@ -437,7 +492,7 @@ export default function OrderCreate() {
           <span className="order-create-back-icon" aria-hidden="true">{SVG.back}</span>
           <span>Назад</span>
         </button>
-        <h1 className="order-create-title">Новый заказ</h1>
+        <h1 className="order-create-title">{isEditMode ? 'Редактирование заказа' : 'Новый заказ'}</h1>
         <div className="order-create-header-spacer" aria-hidden="true" />
       </header>
 
@@ -608,7 +663,7 @@ export default function OrderCreate() {
                 <div className="order-create-fields order-create-assignment-grid">
                   <label className="order-create-field">
                     <span className="input-label">Дизайнер</span>
-                    <select className="input" name="assigned_designer" defaultValue="">
+                    <select className="input" name="assigned_designer" value={assignedDesigner} onChange={(event) => setAssignedDesigner(event.target.value)}>
                       <option value="">Не назначен</option>
                       {designers.map((user) => (
                         <option key={user.id} value={user.id}>{user.full_name}</option>
@@ -618,7 +673,7 @@ export default function OrderCreate() {
 
                   <label className="order-create-field">
                     <span className="input-label">Мастер</span>
-                    <select className="input" name="assigned_master" defaultValue="">
+                    <select className="input" name="assigned_master" value={assignedMaster} onChange={(event) => setAssignedMaster(event.target.value)}>
                       <option value="">Не назначен</option>
                       {masters.map((user) => (
                         <option key={user.id} value={user.id}>{user.full_name}</option>
@@ -628,7 +683,7 @@ export default function OrderCreate() {
 
                   <label className="order-create-field">
                     <span className="input-label">Помощник</span>
-                    <select className="input" name="assigned_assistant" defaultValue="">
+                    <select className="input" name="assigned_assistant" value={assignedAssistant} onChange={(event) => setAssignedAssistant(event.target.value)}>
                       <option value="">Не назначен</option>
                       {assistants.map((user) => (
                         <option key={user.id} value={user.id}>{user.full_name}</option>
@@ -649,6 +704,33 @@ export default function OrderCreate() {
                       name="deadline"
                       value={deadline}
                       onChange={(event) => setDeadline(event.target.value)}
+                    />
+                  </label>
+
+                  <label className="order-create-field">
+                    <span className="input-label">Расход, сом</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputMode="decimal"
+                      className="input"
+                      name="extra_expense_amount"
+                      value={expenseAmountInput}
+                      onChange={(event) => setExpenseAmountInput(event.target.value)}
+                      placeholder="0"
+                    />
+                  </label>
+
+                  <label className="order-create-field">
+                    <span className="input-label">Комментарий к расходу</span>
+                    <input
+                      type="text"
+                      className="input"
+                      name="extra_expense_note"
+                      value={expenseNote}
+                      onChange={(event) => setExpenseNote(event.target.value)}
+                      placeholder="Например: доставка, срочная закупка"
                     />
                   </label>
 
@@ -713,10 +795,33 @@ export default function OrderCreate() {
 
                 <div className="order-create-summary-total">
                   <span className="order-create-summary-label">Итого к оплате</span>
-                  <strong>{formattedTotal}</strong>
+                  <strong>{formattedPayable}</strong>
                 </div>
 
                 <div className="order-create-summary-list">
+                  {safeDiscount > 0 ? (
+                    <div className="order-create-summary-row">
+                      <span>Цена по калькулятору</span>
+                      <strong>{formattedTotal}</strong>
+                    </div>
+                  ) : null}
+                  <div className="order-create-summary-row order-create-summary-row-input">
+                    <label className="order-create-summary-input-label" htmlFor="order-create-discount">Скидка</label>
+                    <div className="order-create-summary-input-wrap">
+                      <input
+                        id="order-create-discount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        inputMode="decimal"
+                        className="order-create-summary-input"
+                        value={discountInput}
+                        onChange={(event) => setDiscountInput(event.target.value)}
+                        placeholder="0"
+                      />
+                      <span className="order-create-summary-input-unit">сом</span>
+                    </div>
+                  </div>
                   <div className="order-create-summary-row order-create-summary-row-input">
                     <label className="order-create-summary-input-label" htmlFor="order-create-prepayment">Предоплата</label>
                     <div className="order-create-summary-input-wrap">
@@ -749,7 +854,7 @@ export default function OrderCreate() {
                 </div>
 
                 <button type="submit" className="btn btn-primary order-create-submit-btn" disabled={busy}>
-                  {busy ? 'Создание...' : 'Создать заказ'}
+                  {busy ? (isEditMode ? 'Сохранение...' : 'Создание...') : (isEditMode ? 'Сохранить заказ' : 'Создать заказ')}
                 </button>
               </div>
             </aside>

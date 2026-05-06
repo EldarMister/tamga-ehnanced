@@ -77,6 +77,7 @@ export default function App() {
             <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
             <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
             <Route path="/orders/new" element={<PrivateRoute><OrderCreate /></PrivateRoute>} />
+            <Route path="/orders/:id/edit" element={<PrivateRoute><OrderCreate /></PrivateRoute>} />
             <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
             <Route path="/inventory" element={<PrivateRoute><Inventory /></PrivateRoute>} />
             <Route path="/pricelist" element={<PrivateRoute><Pricelist /></PrivateRoute>} />

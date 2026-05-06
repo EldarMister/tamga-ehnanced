@@ -112,6 +112,12 @@ const SVG = {
       <path d="M20 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4" />
     </svg>
   ),
+  edit: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
+    </svg>
+  ),
   advance: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M5 12h14" />
@@ -137,6 +143,14 @@ const SVG = {
       <circle cx="12" cy="12" r="9" />
       <path d="m9 9 6 6" />
       <path d="m15 9-6 6" />
+    </svg>
+  ),
+  trash: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 7h16" />
+      <path d="M9 7V4h6v3" />
+      <path d="m7 7 1 12h8l1-12" />
+      <path d="M10 11v5M14 11v5" />
     </svg>
   ),
 };
@@ -188,6 +202,20 @@ function orderStatusTone(status) {
   return STATUS_TONE[status] || 'slate';
 }
 
+function getPayableAmount(order) {
+  const total = Number(order?.total_price || 0);
+  const discount = Number(order?.discount_amount || 0);
+  const direct = Number(order?.payable_amount);
+  return Number.isFinite(direct) ? direct : Math.max(total - discount, 0);
+}
+
+function canFullEditOrder(order, userRole) {
+  if (!['manager', 'director'].includes(userRole)) return false;
+  if (!['created','design','design_done'].includes(order?.status)) return false;
+  const createdAt = new Date(String(order?.created_at || '').replace(' ', 'T'));
+  return Number.isFinite(createdAt.getTime()) && Date.now() - createdAt.getTime() <= 24 * 60 * 60 * 1000;
+}
+
 export default function Orders() {
   const { user, lang } = useAuth();
   const navigate = useNavigate();
@@ -224,7 +252,7 @@ export default function Orders() {
     const list = Array.isArray(orders) ? [...orders] : [];
     if (sortBy === 'price_desc') {
       list.sort((a, b) => {
-        const priceDiff = Number(b.total_price || 0) - Number(a.total_price || 0);
+        const priceDiff = getPayableAmount(b) - getPayableAmount(a);
         if (priceDiff !== 0) return priceDiff;
         return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
       });
@@ -350,6 +378,7 @@ function SortDropdown({ value, onChange }) {
 }
 
 function OrderCard({ order, lang, userRole, onOpen, onReload }) {
+  const navigate = useNavigate();
   const showToast = useToast();
   const { showConfirm, showForm } = useModal();
   const [imgError, setImgError] = useState(false);
@@ -369,6 +398,7 @@ function OrderCard({ order, lang, userRole, onOpen, onReload }) {
   const isManager = ['manager', 'director'].includes(userRole);
   const closedSet = ['closed', 'cancelled', 'defect'];
   const canAdvance = nextAction && nextAction.roles.includes(userRole);
+  const canEdit = canFullEditOrder(order, userRole);
   const canCancel = isManager && !closedSet.includes(order.status);
   const canMarkDefect = canCancel;
   const canUploadDesign = ['designer', 'manager', 'director'].includes(userRole) && ['design', 'created'].includes(order.status);
@@ -376,10 +406,13 @@ function OrderCard({ order, lang, userRole, onOpen, onReload }) {
   const hasPhoto = !!(order.photo_url || order.photo_file);
   const hasDesign = !!String(order.design_file || '').trim();
   const displayDate = order.deadline ? formatDate(order.deadline, lang) : formatDate(order.created_at, lang);
+  const discountAmount = Number(order.discount_amount || 0);
+  const payableAmount = getPayableAmount(order);
   const metaItems = [servicesLabel(itemsCount)];
 
   if (hasPhoto) metaItems.push('Есть фото');
   metaItems.push(hasDesign ? 'Макет загружен' : 'Без макета');
+  if (discountAmount > 0) metaItems.push(`Скидка ${formatCurrency(discountAmount, lang)}`);
 
   const advanceOrder = () => {
     if (!nextAction) return;
@@ -450,6 +483,22 @@ function OrderCard({ order, lang, userRole, onOpen, onReload }) {
     });
   };
 
+  const deleteOrder = () => {
+    showConfirm({
+      title: 'Удаление заказа',
+      body: 'Удалить заказ полностью? Это действие нельзя отменить.',
+      confirmText: 'Удалить заказ',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/api/orders/${order.id}`);
+          showToast('Заказ удалён', 'warning');
+          onReload();
+        } catch {}
+      },
+    });
+  };
+
   const handleDesignUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -482,6 +531,13 @@ function OrderCard({ order, lang, userRole, onOpen, onReload }) {
       tone: 'violet',
       onClick: advanceOrder,
     } : null,
+    canEdit ? {
+      key: 'edit',
+      label: 'Редактировать заказ',
+      icon: SVG.edit,
+      tone: 'blue',
+      onClick: () => navigate(`/orders/${order.id}/edit`),
+    } : null,
     canUploadDesign ? {
       key: 'upload',
       label: uploadBusy ? 'Загрузка макета...' : 'Загрузить макет',
@@ -503,6 +559,14 @@ function OrderCard({ order, lang, userRole, onOpen, onReload }) {
       icon: SVG.cancel,
       tone: 'rose',
       onClick: cancelOrder,
+      danger: true,
+    } : null,
+    isManager ? {
+      key: 'delete',
+      label: 'Удалить заказ',
+      icon: SVG.trash,
+      tone: 'rose',
+      onClick: deleteOrder,
       danger: true,
     } : null,
   ].filter(Boolean);
@@ -551,6 +615,7 @@ function OrderCard({ order, lang, userRole, onOpen, onReload }) {
           <div className="orders-card-toprow">
             <div className="orders-card-toprow-left">
               <span className="orders-card-order-number">{order.order_number}</span>
+              {discountAmount > 0 ? <span className="orders-card-discount">Скидка</span> : null}
               {overdue ? <span className="orders-card-overdue">Просрочен</span> : null}
             </div>
             <div
@@ -615,7 +680,7 @@ function OrderCard({ order, lang, userRole, onOpen, onReload }) {
 
           {/* Нижняя строка: цена + дата */}
           <div className="orders-card-bottomrow">
-            <div className="orders-card-price">{formatCurrency(order.total_price, lang)}</div>
+            <div className="orders-card-price">{formatCurrency(payableAmount, lang)}</div>
             <div className="orders-card-date">
               <span className="orders-card-date-icon">{SVG.calendar}</span>
               <span>{displayDate}</span>

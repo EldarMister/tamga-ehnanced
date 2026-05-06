@@ -118,6 +118,20 @@ const SVG = {
       <path d="M19 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4" />
     </svg>
   ),
+  edit: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
+    </svg>
+  ),
+  trash: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 7h16" />
+      <path d="M9 7V4h6v3" />
+      <path d="m7 7 1 12h8l1-12" />
+      <path d="M10 11v5M14 11v5" />
+    </svg>
+  ),
   imagePlaceholder: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="3" y="5" width="18" height="14" rx="3" />
@@ -139,6 +153,13 @@ function clientTypeLabel(type) {
 
 function detailStatusClass(status) {
   return `order-detail-status-badge order-detail-status-badge-${STATUS_TONE[status] || 'slate'}`;
+}
+
+function canFullEditOrder(order, userRole) {
+  if (!['manager', 'director'].includes(userRole)) return false;
+  if (!['created','design','design_done'].includes(order?.status)) return false;
+  const createdAt = new Date(String(order?.created_at || '').replace(' ', 'T'));
+  return Number.isFinite(createdAt.getTime()) && Date.now() - createdAt.getTime() <= 24 * 60 * 60 * 1000;
 }
 
 function SectionHeading({ icon, title, action }) {
@@ -197,8 +218,10 @@ export default function OrderDetail() {
   const canAdvance = next && next.roles.includes(user.role);
   const isManager = ['manager', 'director'].includes(user.role);
   const closedSet = ['closed', 'cancelled', 'defect'];
+  const canEdit = canFullEditOrder(order, user.role);
   const canCancel = isManager && !closedSet.includes(order.status);
   const canMarkDefect = canCancel;
+  const canDelete = isManager;
   const canUploadDesign = ['designer', 'manager', 'director'].includes(user.role) && ['design', 'created'].includes(order.status);
   const canNotify = isManager && order.status === 'ready';
 
@@ -206,10 +229,18 @@ export default function OrderDetail() {
   const designUrl = order.design_file ? `/api/uploads/${order.design_file}` : '';
   const items = Array.isArray(order.items) ? order.items : [];
   const prepaymentAmount = Number(order.prepayment_amount || 0);
+  const discountAmount = Number(order.discount_amount || 0);
+  const extraExpenseAmount = Number(order.extra_expense_amount || 0);
+  const extraExpenseNote = String(order.extra_expense_note || '').trim();
+  const payableAmount = Number.isFinite(Number(order.payable_amount))
+    ? Number(order.payable_amount)
+    : Math.max(Number(order.total_price || 0) - discountAmount, 0);
   const remainingAmount = Number.isFinite(Number(order.remaining_amount))
     ? Number(order.remaining_amount)
-    : Math.max(Number(order.total_price || 0) - prepaymentAmount, 0);
+    : Math.max(payableAmount - prepaymentAmount, 0);
   const showPrepayment = prepaymentAmount > 0;
+  const showDiscount = discountAmount > 0;
+  const showExtraExpense = extraExpenseAmount > 0 || extraExpenseNote;
   const clientType = clientTypeLabel(order.client_type);
   const notes = String(order.notes || '').trim();
   const history = Array.isArray(order.history) ? order.history : [];
@@ -283,6 +314,22 @@ export default function OrderDetail() {
         try {
           await api.patch(`/api/orders/${order.id}/status`, { status: 'cancelled' });
           showToast('Заказ отменён', 'warning');
+          navigate('/orders');
+        } catch {}
+      },
+    });
+  };
+
+  const deleteOrder = () => {
+    showConfirm({
+      title: 'Удаление заказа',
+      body: 'Удалить заказ полностью? Это действие нельзя отменить.',
+      confirmText: 'Удалить заказ',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/api/orders/${order.id}`);
+          showToast('Заказ удалён', 'warning');
           navigate('/orders');
         } catch {}
       },
@@ -427,9 +474,15 @@ export default function OrderDetail() {
               </div>
 
               <div className="order-detail-total-row">
-                <span>Итого по заказу</span>
+                <span>Цена по калькулятору</span>
                 <strong>{formatCurrency(order.total_price, lang)}</strong>
               </div>
+              {showDiscount ? (
+                <div className="order-detail-total-row order-detail-total-row-discount">
+                  <span>К оплате со скидкой</span>
+                  <strong>{formatCurrency(payableAmount, lang)}</strong>
+                </div>
+              ) : null}
 
               {user.role === 'director' && (
                 <div className="order-detail-finance-grid">
@@ -437,9 +490,15 @@ export default function OrderDetail() {
                     <span className="order-detail-finance-label">Себестоимость</span>
                     <strong>{formatCurrency(order.material_cost, lang)}</strong>
                   </div>
+                  {showExtraExpense ? (
+                    <div className="order-detail-finance-card order-detail-finance-card-expense">
+                      <span className="order-detail-finance-label">Расходы</span>
+                      <strong>{formatCurrency(extraExpenseAmount, lang)}</strong>
+                    </div>
+                  ) : null}
                   <div className="order-detail-finance-card order-detail-finance-card-profit">
                     <span className="order-detail-finance-label">Прибыль</span>
-                    <strong>{formatCurrency(order.total_price - (order.material_cost || 0), lang)}</strong>
+                    <strong>{formatCurrency(payableAmount - Number(order.material_cost || 0) - extraExpenseAmount, lang)}</strong>
                   </div>
                 </div>
               )}
@@ -504,6 +563,17 @@ export default function OrderDetail() {
                   <span>Создан</span>
                   <strong>{formatDateTime(order.created_at, lang)}</strong>
                 </div>
+                {showExtraExpense ? (
+                  <>
+                    <div className="order-detail-info-row">
+                      <span>Расход</span>
+                      <strong>{formatCurrency(extraExpenseAmount, lang)}</strong>
+                    </div>
+                    {extraExpenseNote ? (
+                      <div className="order-detail-note-box">Расход: {extraExpenseNote}</div>
+                    ) : null}
+                  </>
+                ) : null}
                 {notes ? (
                   <div className="order-detail-note-box">{notes}</div>
                 ) : null}
@@ -527,7 +597,7 @@ export default function OrderDetail() {
               </div>
             </section>
 
-            {(canMarkDefect || canCancel) && (
+            {(canMarkDefect || canCancel || canDelete) && (
               <div className="order-detail-bottom-actions">
                 {canMarkDefect ? (
                   <button type="button" className="order-detail-bottom-btn order-detail-bottom-btn-warning" onClick={markDefect}>
@@ -537,6 +607,11 @@ export default function OrderDetail() {
                 {canCancel ? (
                   <button type="button" className="order-detail-bottom-btn order-detail-bottom-btn-danger" onClick={cancelOrder}>
                     Отменить заказ
+                  </button>
+                ) : null}
+                {canDelete ? (
+                  <button type="button" className="order-detail-bottom-btn order-detail-bottom-btn-danger" onClick={deleteOrder}>
+                    Удалить заказ
                   </button>
                 ) : null}
               </div>
@@ -554,6 +629,7 @@ export default function OrderDetail() {
                   </div>
                 </div>
                 <span className={detailStatusClass(order.status)}>{statusLabel(order.status, lang)}</span>
+                {showDiscount ? <span className="orders-card-discount">Скидка</span> : null}
               </div>
 
               <div className="order-detail-summary-client">
@@ -581,23 +657,35 @@ export default function OrderDetail() {
               </div>
 
               <div className="order-detail-summary-total">
-                <span>Итого по заказу</span>
-                <strong>{formatCurrency(order.total_price, lang)}</strong>
+                <span>Итого к оплате</span>
+                <strong>{formatCurrency(payableAmount, lang)}</strong>
               </div>
 
               <div className="order-detail-summary-list">
+                {showDiscount ? (
+                  <>
+                    <div className="order-detail-summary-row">
+                      <span>Цена по калькулятору</span>
+                      <strong>{formatCurrency(order.total_price, lang)}</strong>
+                    </div>
+                    <div className="order-detail-summary-row order-detail-summary-row-discount">
+                      <span>Скидка</span>
+                      <strong>-{formatCurrency(discountAmount, lang)}</strong>
+                    </div>
+                  </>
+                ) : null}
                 {showPrepayment ? (
                   <>
                     <div className="order-detail-summary-row">
                       <span>Предоплата</span>
                       <strong>{formatCurrency(prepaymentAmount, lang)}</strong>
                     </div>
-                    <div className="order-detail-summary-row">
-                      <span>Остаток</span>
-                      <strong>{formatCurrency(remainingAmount, lang)}</strong>
-                    </div>
                   </>
                 ) : null}
+                <div className="order-detail-summary-row">
+                  <span>Остаток</span>
+                  <strong>{formatCurrency(remainingAmount, lang)}</strong>
+                </div>
                 <div className="order-detail-summary-row">
                   <span className="order-detail-summary-row-label">
                     <span className="order-detail-inline-icon" aria-hidden="true">{SVG.calendar}</span>
@@ -619,6 +707,13 @@ export default function OrderDetail() {
                   <button type="button" className="order-detail-summary-primary" onClick={advance}>
                     <span>{next.label}</span>
                     <span className="order-detail-action-icon" aria-hidden="true">{SVG.arrowRight}</span>
+                  </button>
+                ) : null}
+
+                {canEdit ? (
+                  <button type="button" className="order-detail-summary-secondary" onClick={() => navigate(`/orders/${order.id}/edit`)}>
+                    <span className="order-detail-action-icon" aria-hidden="true">{SVG.edit}</span>
+                    <span>Редактировать заказ</span>
                   </button>
                 ) : null}
 

@@ -268,7 +268,8 @@ function GranularityDropdown({ value, onChange }) {
 
 function DirectorView({ fin, employeeStats, tasks, onToggleTask, lang }) {
   const [granularity, setGranularity] = useState('day');
-  const expenses = (fin.material_cost || 0) + (fin.payroll || 0) + (fin.penalties || 0);
+  const extraExpenses = fin.extra_expenses || 0;
+  const expenses = (fin.material_cost || 0) + extraExpenses + (fin.payroll || 0) + (fin.penalties || 0);
   const profit = fin.profit || 0;
   const margin = fin.revenue > 0 ? Math.round((profit / fin.revenue) * 100) : 0;
   const progress = Math.max(0, Math.min(100, margin));
@@ -319,7 +320,7 @@ function DirectorView({ fin, employeeStats, tasks, onToggleTask, lang }) {
 
         <div className="dashboard-panel dashboard-expense-panel">
           <h2 className="dashboard-panel-title">Структура расходов</h2>
-          <ExpenseStructure material={fin.material_cost || 0} payroll={fin.payroll || 0} penalties={fin.penalties || 0} lang={lang} />
+          <ExpenseStructure material={fin.material_cost || 0} extra={extraExpenses} payroll={fin.payroll || 0} penalties={fin.penalties || 0} lang={lang} />
         </div>
       </section>
 
@@ -497,15 +498,16 @@ function FinanceLines({ daily, lang, granularity = 'day' }) {
   );
 }
 
-function ExpenseStructure({ material, payroll, penalties, lang }) {
-  const sum = material + payroll + penalties;
+function ExpenseStructure({ material, extra, payroll, penalties, lang }) {
+  const sum = material + extra + payroll + penalties;
   const total = Math.max(1, sum);
   const mPct = Math.round((material / total) * 100);
+  const extraPct = Math.round((extra / total) * 100);
   const pPct = Math.round((payroll / total) * 100);
-  const penPct = sum === 0 ? 100 : Math.max(0, 100 - mPct - pPct);
+  const penPct = sum === 0 ? 100 : Math.max(0, 100 - mPct - extraPct - pPct);
   const gradient = sum === 0
     ? 'conic-gradient(#764df0 0% 100%)'
-    : `conic-gradient(#764df0 0% ${mPct}%, #f7a11b ${mPct}% ${mPct + pPct}%, #dc4bd7 ${mPct + pPct}% 100%)`;
+    : `conic-gradient(#764df0 0% ${mPct}%, #ef5148 ${mPct}% ${mPct + extraPct}%, #f7a11b ${mPct + extraPct}% ${mPct + extraPct + pPct}%, #dc4bd7 ${mPct + extraPct + pPct}% 100%)`;
 
   return (
     <div className="dashboard-expense-structure">
@@ -517,6 +519,7 @@ function ExpenseStructure({ material, payroll, penalties, lang }) {
       </div>
       <div className="dashboard-expense-legend">
         <LegendRow label="Материалы" value={material} color="#764df0" pct={mPct} lang={lang} />
+        <LegendRow label="Доп. расходы" value={extra} color="#ef5148" pct={extraPct} lang={lang} />
         <LegendRow label="Зарплаты" value={payroll} color="#f7a11b" pct={pPct} lang={lang} />
         <LegendRow label="Штрафы" value={penalties} color="#dc4bd7" pct={penPct} lang={lang} />
       </div>

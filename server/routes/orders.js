@@ -39,7 +39,8 @@ function calcItemTotal(unit, unitPrice, quantity, width, height) {
 }
 
 const ORDER_COLS = `id, order_number, client_name, client_phone, client_type, status,
-  total_price, prepayment_amount, material_cost, notes, design_file, photo_file,
+  total_price, prepayment_amount, discount_amount, material_cost, extra_expense_amount, extra_expense_note,
+  notes, design_file, photo_file,
   CASE WHEN photo_file IS NOT NULL AND TRIM(photo_file) <> '' THEN 1 ELSE 0 END AS has_photo,
   assigned_designer, assigned_master, assigned_assistant, deadline,
   created_by, created_at, updated_at`;
@@ -48,7 +49,10 @@ function serializeOrder(row, opts = {}) {
   if (!row) return row;
   const o = { ...row };
   o.prepayment_amount = Number(o.prepayment_amount || 0);
-  o.remaining_amount = Math.max(Number(o.total_price || 0) - o.prepayment_amount, 0);
+  o.discount_amount = Number(o.discount_amount || 0);
+  o.extra_expense_amount = Number(o.extra_expense_amount || 0);
+  o.payable_amount = Math.max(Number(o.total_price || 0) - o.discount_amount, 0);
+  o.remaining_amount = Math.max(o.payable_amount - o.prepayment_amount, 0);
   const hasPhoto = !!o.has_photo || (o.photo_file && String(o.photo_file).trim());
   o.photo_url = hasPhoto ? `/api/orders/${o.id}/photo/raw?v=${encodeURIComponent(o.updated_at || '')}` : '';
   delete o.has_photo;
@@ -69,6 +73,46 @@ function parsePrepaymentAmount(rawValue, totalPrice) {
     throw err;
   }
   return Math.round(value * 100) / 100;
+}
+
+function parseDiscountAmount(rawValue, totalPrice) {
+  const value = rawValue === '' || rawValue == null ? 0 : Number(rawValue);
+  if (!Number.isFinite(value) || value < 0) {
+    const err = new Error('Скидка должна быть числом не меньше 0');
+    err.statusCode = 400;
+    throw err;
+  }
+  if (value > Number(totalPrice || 0)) {
+    const err = new Error('Скидка не может быть больше суммы заказа');
+    err.statusCode = 400;
+    throw err;
+  }
+  return Math.round(value * 100) / 100;
+}
+
+function parseExpenseAmount(rawValue) {
+  const value = rawValue === '' || rawValue == null ? 0 : Number(rawValue);
+  if (!Number.isFinite(value) || value < 0) {
+    const err = new Error('Расход должен быть числом не меньше 0');
+    err.statusCode = 400;
+    throw err;
+  }
+  return Math.round(value * 100) / 100;
+}
+
+function assertFullEditAllowed(order) {
+  const createdAt = new Date(String(order.created_at || '').replace(' ', 'T'));
+  const withinWindow = Number.isFinite(createdAt.getTime()) && Date.now() - createdAt.getTime() <= 24 * 60 * 60 * 1000;
+  if (!withinWindow) {
+    const err = new Error('Полное редактирование доступно только в течение 24 часов после создания заказа');
+    err.statusCode = 403;
+    throw err;
+  }
+  if (!['created','design','design_done'].includes(order.status)) {
+    const err = new Error('Состав заказа можно редактировать только до передачи в производство');
+    err.statusCode = 400;
+    throw err;
+  }
 }
 
 async function generateOrderNumber(client) {
@@ -117,7 +161,7 @@ router.get('/', authRequired, async (req, res) => {
 
   const where = conditions.join(' AND ');
   const orders = await all(
-    `SELECT ${ORDER_COLS.replace(/(\bid\b|order_number|client_name|client_phone|client_type|status|total_price|prepayment_amount|material_cost|notes|design_file|photo_file|assigned_designer|assigned_master|assigned_assistant|deadline|created_by|created_at|updated_at)/g, 'o.$1')} FROM orders o WHERE ${where} ORDER BY o.created_at DESC LIMIT ? OFFSET ?`,
+    `SELECT ${ORDER_COLS.replace(/(\bid\b|order_number|client_name|client_phone|client_type|status|total_price|prepayment_amount|discount_amount|material_cost|extra_expense_amount|extra_expense_note|notes|design_file|photo_file|assigned_designer|assigned_master|assigned_assistant|deadline|created_by|created_at|updated_at)/g, 'o.$1')} FROM orders o WHERE ${where} ORDER BY o.created_at DESC LIMIT ? OFFSET ?`,
     [...params, limit, offset],
   );
   const countRow = await one(`SELECT COUNT(*)::int AS n FROM orders o WHERE ${where}`, params);
@@ -242,14 +286,18 @@ router.post('/', authRequired, roleRequired('manager', 'director'), async (req, 
       });
     }
 
-    const prepaymentAmount = parsePrepaymentAmount(data.prepayment_amount, totalPrice);
+    const discountAmount = parseDiscountAmount(data.discount_amount, totalPrice);
+    const payableAmount = Math.max(totalPrice - discountAmount, 0);
+    const prepaymentAmount = parsePrepaymentAmount(data.prepayment_amount, payableAmount);
+    const extraExpenseAmount = parseExpenseAmount(data.extra_expense_amount);
 
     const ins = await client.query(
-      `INSERT INTO orders (order_number, client_name, client_phone, client_type, total_price, prepayment_amount, material_cost,
-         notes, deadline, assigned_designer, assigned_master, assigned_assistant, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+      `INSERT INTO orders (order_number, client_name, client_phone, client_type, total_price, prepayment_amount, discount_amount,
+         material_cost, extra_expense_amount, extra_expense_note, notes, deadline, assigned_designer, assigned_master, assigned_assistant, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
       [orderNumber, data.client_name, data.client_phone || '', data.client_type || 'retail',
-       totalPrice, prepaymentAmount, materialCost, data.notes || '', data.deadline || null,
+       totalPrice, prepaymentAmount, discountAmount, materialCost, extraExpenseAmount, data.extra_expense_note || '',
+       data.notes || '', data.deadline || null,
        data.assigned_designer || null, data.assigned_master || null, data.assigned_assistant || null, req.user.id],
     );
     const orderId = ins.rows[0].id;
@@ -290,16 +338,165 @@ router.post('/', authRequired, roleRequired('manager', 'director'), async (req, 
 });
 
 // ─── Update fields ────────────────────────────────────────────────────────────
-router.put('/:id', authRequired, roleRequired('manager', 'director'), async (req, res) => {
+router.put('/:id', authRequired, roleRequired('manager', 'director'), async (req, res, next) => {
   const id = parseInt(req.params.id, 10);
   const order = await one(`SELECT ${ORDER_COLS} FROM orders WHERE id = ?`, [id]);
   if (!order) return res.status(404).json({ detail: 'Заказ не найден' });
 
-  const allowed = ['client_name','client_phone','notes','deadline','assigned_designer','assigned_master','assigned_assistant','prepayment_amount'];
+  if (Array.isArray(req.body?.items)) {
+    const data = req.body || {};
+    if (data.items.length === 0) return res.status(400).json({ detail: 'Нужны позиции заказа' });
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const currentRes = await client.query(`SELECT ${ORDER_COLS} FROM orders WHERE id = $1 FOR UPDATE`, [id]);
+      const current = currentRes.rows[0];
+      if (!current) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ detail: 'Заказ не найден' });
+      }
+      assertFullEditAllowed(current);
+
+      const oldItems = (await client.query('SELECT * FROM order_items WHERE order_id = $1', [id])).rows;
+      for (const item of oldItems) {
+        if (item.material_id && item.material_qty > 0) {
+          await client.query(
+            'UPDATE materials SET reserved = GREATEST(reserved - $1, 0), updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+            [item.material_qty, item.material_id],
+          );
+          await client.query(
+            `INSERT INTO material_ledger (material_id, order_id, action, quantity, note, performed_by)
+             VALUES ($1,$2,'unreserve',$3,'Возврат резерва при редактировании заказа',$4)`,
+            [item.material_id, id, item.material_qty, req.user.id],
+          );
+        }
+      }
+
+      const clientType = data.client_type || current.client_type || 'retail';
+      let totalPrice = 0;
+      let materialCost = 0;
+      const itemsData = [];
+
+      for (const item of data.items) {
+        const svcRes = await client.query('SELECT * FROM services WHERE id = $1 AND is_active = 1', [item.service_id]);
+        const svc = svcRes.rows[0];
+        if (!svc) {
+          const e = new Error(`Услуга ${item.service_id} не найдена`);
+          e.statusCode = 400; throw e;
+        }
+        const unitPrice = (clientType === 'dealer' && svc.price_dealer > 0) ? svc.price_dealer : svc.price_retail;
+        const { itemTotal, calcUnits } = calcItemTotal(svc.unit, unitPrice, Number(item.quantity), item.width, item.height);
+        totalPrice += itemTotal;
+
+        const mapRes = await client.query(
+          `SELECT sm.*, m.code as mat_code, m.name_ru as mat_name, m.quantity as mat_quantity, m.reserved as mat_reserved
+           FROM service_material_map sm JOIN materials m ON m.id = sm.material_id WHERE sm.service_id = $1`,
+          [svc.id],
+        );
+        let materialId = null, materialQty = 0;
+        if (mapRes.rowCount > 0) {
+          const mapping = mapRes.rows[0];
+          materialId = mapping.material_id;
+          materialQty = calcUnits * Number(mapping.ratio);
+          materialCost += materialQty * Number(svc.cost_price || 0);
+          const available = Number(mapping.mat_quantity) - Number(mapping.mat_reserved);
+          if (available < materialQty) {
+            const e = new Error(`Недостаточно материала '${mapping.mat_name}': доступно ${available.toFixed(1)}, нужно ${materialQty.toFixed(1)}`);
+            e.statusCode = 400; throw e;
+          }
+          await client.query(
+            'UPDATE materials SET reserved = reserved + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+            [materialQty, materialId],
+          );
+        }
+
+        itemsData.push({
+          service_id: svc.id, material_id: materialId,
+          quantity: item.quantity, width: item.width ?? null, height: item.height ?? null,
+          unit_price: unitPrice, total: itemTotal,
+          material_qty: materialQty, options: JSON.stringify(item.options || {}),
+        });
+      }
+
+      const discountAmount = parseDiscountAmount(data.discount_amount ?? current.discount_amount, totalPrice);
+      const payableAmount = Math.max(totalPrice - discountAmount, 0);
+      const prepaymentAmount = parsePrepaymentAmount(data.prepayment_amount ?? current.prepayment_amount, payableAmount);
+      const extraExpenseAmount = parseExpenseAmount(data.extra_expense_amount ?? current.extra_expense_amount);
+
+      await client.query('DELETE FROM order_items WHERE order_id = $1', [id]);
+      for (const it of itemsData) {
+        await client.query(
+          `INSERT INTO order_items (order_id, service_id, material_id, quantity, width, height, unit_price, total, material_qty, options)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+          [id, it.service_id, it.material_id, it.quantity, it.width, it.height, it.unit_price, it.total, it.material_qty, it.options],
+        );
+        if (it.material_id && it.material_qty > 0) {
+          await client.query(
+            `INSERT INTO material_ledger (material_id, order_id, action, quantity, note, performed_by)
+             VALUES ($1,$2,'reserve',$3,'Резерв при редактировании заказа',$4)`,
+            [it.material_id, id, -it.material_qty, req.user.id],
+          );
+        }
+      }
+
+      await client.query(
+        `UPDATE orders SET client_name = $1, client_phone = $2, client_type = $3, total_price = $4,
+           prepayment_amount = $5, discount_amount = $6, material_cost = $7, extra_expense_amount = $8,
+           extra_expense_note = $9, notes = $10, deadline = $11, assigned_designer = $12,
+           assigned_master = $13, assigned_assistant = $14, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $15`,
+        [
+          data.client_name ?? current.client_name,
+          data.client_phone ?? current.client_phone ?? '',
+          clientType,
+          totalPrice,
+          prepaymentAmount,
+          discountAmount,
+          materialCost,
+          extraExpenseAmount,
+          data.extra_expense_note ?? current.extra_expense_note ?? '',
+          data.notes ?? current.notes ?? '',
+          data.deadline || null,
+          data.assigned_designer || null,
+          data.assigned_master || null,
+          data.assigned_assistant || null,
+          id,
+        ],
+      );
+      await client.query(
+        `INSERT INTO order_history (order_id, old_status, new_status, changed_by, note)
+         VALUES ($1, $2, $2, $3, 'Заказ отредактирован')`,
+        [id, current.status, req.user.id],
+      );
+
+      await client.query('COMMIT');
+      const updated = await one(`SELECT ${ORDER_COLS} FROM orders WHERE id = ?`, [id]);
+      broadcast('orders:changed', { id, action: 'updated' });
+      return res.json(serializeOrder(updated));
+    } catch (e) {
+      await client.query('ROLLBACK').catch(() => {});
+      return next(e);
+    } finally {
+      client.release();
+    }
+  }
+
+  const allowed = ['client_name','client_phone','notes','deadline','assigned_designer','assigned_master','assigned_assistant','prepayment_amount','discount_amount','extra_expense_amount','extra_expense_note'];
   const updates = {};
   for (const k of allowed) if (k in req.body) updates[k] = req.body[k];
+  if ('discount_amount' in updates) {
+    updates.discount_amount = parseDiscountAmount(updates.discount_amount, order.total_price);
+  }
+  const effectiveDiscount = 'discount_amount' in updates ? updates.discount_amount : Number(order.discount_amount || 0);
+  const payableAmount = Math.max(Number(order.total_price || 0) - effectiveDiscount, 0);
   if ('prepayment_amount' in updates) {
-    updates.prepayment_amount = parsePrepaymentAmount(updates.prepayment_amount, order.total_price);
+    updates.prepayment_amount = parsePrepaymentAmount(updates.prepayment_amount, payableAmount);
+  } else {
+    parsePrepaymentAmount(order.prepayment_amount, payableAmount);
+  }
+  if ('extra_expense_amount' in updates) {
+    updates.extra_expense_amount = parseExpenseAmount(updates.extra_expense_amount);
   }
   if (Object.keys(updates).length === 0) return res.json(serializeOrder(order));
 
@@ -412,6 +609,54 @@ router.post('/:id/notify', authRequired, roleRequired('manager', 'director'), as
     created.push({ id: r.rows[0].id, channel: ch });
   }
   res.json({ ok: true, notifications: created });
+});
+
+router.delete('/:id', authRequired, roleRequired('manager', 'director'), async (req, res, next) => {
+  const id = parseInt(req.params.id, 10);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const orderRes = await client.query('SELECT id, order_number, status FROM orders WHERE id = $1 FOR UPDATE', [id]);
+    if (orderRes.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ detail: 'Заказ не найден' });
+    }
+    const order = orderRes.rows[0];
+
+    const items = (await client.query('SELECT * FROM order_items WHERE order_id = $1', [id])).rows;
+    if (['created','design','design_done'].includes(order.status)) {
+      for (const item of items) {
+        if (item.material_id && item.material_qty > 0) {
+          await client.query(
+            'UPDATE materials SET reserved = GREATEST(reserved - $1, 0), updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+            [item.material_qty, item.material_id],
+          );
+          await client.query(
+            `INSERT INTO material_ledger (material_id, order_id, action, quantity, note, performed_by)
+             VALUES ($1,$2,'unreserve',$3,$4,$5)`,
+            [item.material_id, id, item.material_qty, `Возврат резерва при удалении заказа ${order.order_number}`, req.user.id],
+          );
+        }
+      }
+    }
+
+    await client.query('DELETE FROM client_notifications WHERE order_id = $1', [id]);
+    await client.query('DELETE FROM order_history WHERE order_id = $1', [id]);
+    await client.query('DELETE FROM order_items WHERE order_id = $1', [id]);
+    await client.query('UPDATE incidents SET order_id = NULL WHERE order_id = $1', [id]);
+    await client.query('UPDATE material_ledger SET order_id = NULL WHERE order_id = $1', [id]);
+    await client.query('DELETE FROM orders WHERE id = $1', [id]);
+
+    await client.query('COMMIT');
+    broadcast('orders:changed', { id, action: 'deleted' });
+    res.json({ ok: true });
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    next(e);
+  } finally {
+    client.release();
+  }
 });
 
 // ─── Uploads ──────────────────────────────────────────────────────────────────

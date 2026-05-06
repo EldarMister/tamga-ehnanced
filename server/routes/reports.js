@@ -18,21 +18,22 @@ router.get('/orders-summary', authRequired, roleRequired('director', 'manager'),
   const where = ['1=1', ...dc.conditions].join(' AND ');
 
   const byStatus = await all(
-    `SELECT status, COUNT(*)::int AS count, COALESCE(SUM(total_price), 0) AS revenue
+    `SELECT status, COUNT(*)::int AS count, COALESCE(SUM(total_price - discount_amount), 0) AS revenue
      FROM orders WHERE ${where} GROUP BY status`,
     dc.params,
   );
   const totals = await one(
     `SELECT COUNT(*)::int AS total_orders,
-            COALESCE(SUM(total_price), 0) AS total_revenue,
-            COALESCE(SUM(material_cost), 0) AS total_cost
+            COALESCE(SUM(total_price - discount_amount), 0) AS total_revenue,
+            COALESCE(SUM(material_cost), 0) AS total_cost,
+            COALESCE(SUM(extra_expense_amount), 0) AS extra_expenses
      FROM orders WHERE ${where} AND status != 'cancelled'`,
     dc.params,
   );
   res.json({
     by_status: byStatus,
-    totals: totals || { total_orders: 0, total_revenue: 0, total_cost: 0 },
-    profit: totals ? Number(totals.total_revenue) - Number(totals.total_cost) : 0,
+    totals: totals || { total_orders: 0, total_revenue: 0, total_cost: 0, extra_expenses: 0 },
+    profit: totals ? Number(totals.total_revenue) - Number(totals.total_cost) - Number(totals.extra_expenses || 0) : 0,
   });
 });
 
@@ -90,8 +91,9 @@ async function buildFinanceData(date_from, date_to) {
 
   const totals = await one(
     `SELECT COUNT(*)::int AS orders_count,
-            COALESCE(SUM(total_price), 0) AS revenue,
-            COALESCE(SUM(material_cost), 0) AS material_cost
+            COALESCE(SUM(total_price - discount_amount), 0) AS revenue,
+            COALESCE(SUM(material_cost), 0) AS material_cost,
+            COALESCE(SUM(extra_expense_amount), 0) AS extra_expenses
      FROM orders WHERE ${where}`,
     dc.params,
   );
@@ -119,8 +121,8 @@ async function buildFinanceData(date_from, date_to) {
   const daily = await all(
     `SELECT DATE(created_at)::text AS day,
             COUNT(*)::int AS orders_count,
-            COALESCE(SUM(total_price), 0) AS revenue,
-            COALESCE(SUM(material_cost), 0) AS cost
+            COALESCE(SUM(total_price - discount_amount), 0) AS revenue,
+            COALESCE(SUM(material_cost + extra_expense_amount), 0) AS cost
      FROM orders WHERE ${where}
      GROUP BY DATE(created_at)
      ORDER BY day DESC
@@ -146,15 +148,17 @@ async function buildFinanceData(date_from, date_to) {
 
   const revenue = Number(totals?.revenue || 0);
   const materialCost = Number(totals?.material_cost || 0);
+  const extraExpenses = Number(totals?.extra_expenses || 0);
   const payrollSum = Number(payrollTotal?.total_payroll || 0);
   const penaltiesSum = Number(penalties?.total_penalties || 0);
 
   return {
     revenue,
     material_cost: materialCost,
+    extra_expenses: extraExpenses,
     payroll: payrollSum,
     penalties: penaltiesSum,
-    profit: revenue - materialCost - payrollSum,
+    profit: revenue - materialCost - extraExpenses - payrollSum,
     orders_count: totals?.orders_count || 0,
     daily,
     top_services: topServices,
@@ -177,6 +181,7 @@ router.get('/finance-export.csv', authRequired, roleRequired('director'), async 
   row('Сводка', 'Сумма');
   row('Выручка', data.revenue);
   row('Материалы', data.material_cost);
+  row('Доп. расходы', data.extra_expenses);
   row('Зарплаты', data.payroll);
   row('Штрафы', data.penalties);
   row('Прибыль', data.profit);

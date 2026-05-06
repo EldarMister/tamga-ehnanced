@@ -5668,6 +5668,11 @@ body:has(.order-create-page) .global-theme-toggle {
     color: #16a34a;
 }
 
+.order-detail-finance-card-expense {
+    background: linear-gradient(180deg, rgba(255, 247, 237, 0.96), rgba(255, 251, 245, 0.94));
+    color: #ea580c;
+}
+
 .order-detail-finance-label {
     font-size: 11px;
     font-weight: 700;
@@ -6067,6 +6072,11 @@ body:has(.order-create-page) .global-theme-toggle {
     min-width: 0;
     max-width: 100%;
     overflow-wrap: anywhere;
+}
+
+.order-detail-summary-row-discount strong,
+.order-detail-total-row-discount strong {
+    color: #16a34a;
 }
 
 .order-detail-summary-row-label {
@@ -6633,6 +6643,19 @@ body:has(.order-detail-page) .global-theme-toggle {
     flex-shrink: 0;
 }
 
+.orders-card-discount {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 9px;
+    border-radius: 999px;
+    background: #ecfdf3;
+    color: #15803d;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
 .orders-card-client {
     margin: 0;
     font-size: clamp(20px, 2.2vw, 28px);
@@ -7122,6 +7145,11 @@ body:has(.orders-page) .global-theme-toggle {
 [data-theme="dark"] .orders-card-overdue {
     background: rgba(239, 81, 72, 0.16);
     color: #ff9b93;
+}
+
+[data-theme="dark"] .orders-card-discount {
+    background: rgba(34, 197, 94, 0.16);
+    color: #86efac;
 }
 
 [data-theme="dark"] .orders-card-bottomrow {
