@@ -398,7 +398,7 @@ function OrderCard({ order, lang, userRole, onOpen, onReload }) {
   const isManager = ['manager', 'director'].includes(userRole);
   const closedSet = ['closed', 'cancelled', 'defect'];
   const canAdvance = nextAction && nextAction.roles.includes(userRole);
-  const canEdit = canFullEditOrder(order, userRole);
+  const canEdit = isManager;
   const canCancel = isManager && !closedSet.includes(order.status);
   const canMarkDefect = canCancel;
   const canUploadDesign = ['designer', 'manager', 'director'].includes(userRole) && ['design', 'created'].includes(order.status);

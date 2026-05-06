@@ -218,7 +218,7 @@ export default function OrderDetail() {
   const canAdvance = next && next.roles.includes(user.role);
   const isManager = ['manager', 'director'].includes(user.role);
   const closedSet = ['closed', 'cancelled', 'defect'];
-  const canEdit = canFullEditOrder(order, user.role);
+  const canEdit = isManager;
   const canCancel = isManager && !closedSet.includes(order.status);
   const canMarkDefect = canCancel;
   const canDelete = isManager;
