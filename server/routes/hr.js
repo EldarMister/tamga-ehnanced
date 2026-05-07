@@ -184,6 +184,56 @@ router.get('/shift-tasks/report', authRequired, roleRequired('director'), async 
   res.json({ date, role, items, tasks });
 });
 
+// ─── Daily expenses ───────────────────────────────────────────────────────────
+
+router.get('/expenses', authRequired, roleRequired('director', 'manager'), async (req, res) => {
+  const conditions = ['1=1'];
+  const params = [];
+  if (req.query.date_from) { conditions.push('e.expense_date >= ?'); params.push(req.query.date_from); }
+  if (req.query.date_to) { conditions.push('e.expense_date <= ?'); params.push(req.query.date_to); }
+  const where = conditions.join(' AND ');
+  const rows = await all(
+    `SELECT e.*, u.full_name AS created_by_name
+     FROM daily_expenses e
+     JOIN users u ON u.id = e.created_by
+     WHERE ${where}
+     ORDER BY e.expense_date DESC, e.created_at DESC
+     LIMIT 200`,
+    params,
+  );
+  res.json(rows);
+});
+
+router.post('/expenses', authRequired, roleRequired('director', 'manager'), async (req, res) => {
+  const data = req.body || {};
+  const amount = Number(data.amount);
+  const note = String(data.note || '').trim();
+  const expenseDate = data.expense_date || todayIso();
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({ detail: 'Сумма расхода должна быть больше 0' });
+  }
+  if (!note) return res.status(400).json({ detail: 'Укажите комментарий к расходу' });
+
+  const result = await pool.query(
+    `INSERT INTO daily_expenses (expense_date, amount, note, created_by)
+     VALUES ($1, $2, $3, $4)
+     RETURNING *`,
+    [expenseDate, Math.round(amount * 100) / 100, note, req.user.id],
+  );
+  broadcast('hr:expense', { id: result.rows[0].id, action: 'created' });
+  res.json(result.rows[0]);
+});
+
+router.delete('/expenses/:id', authRequired, roleRequired('director', 'manager'), async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const row = await one('SELECT id FROM daily_expenses WHERE id = ?', [id]);
+  if (!row) return res.status(404).json({ detail: 'Расход не найден' });
+  await exec('DELETE FROM daily_expenses WHERE id = ?', [id]);
+  broadcast('hr:expense', { id, action: 'deleted' });
+  res.json({ ok: true });
+});
+
 // ─── Incidents ────────────────────────────────────────────────────────────────
 
 router.post('/incidents', authRequired, roleRequired('director', 'manager'), async (req, res, next) => {

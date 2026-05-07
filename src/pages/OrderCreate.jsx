@@ -263,8 +263,6 @@ export default function OrderCreate() {
   const [clientPhone, setClientPhone] = useState('');
   const [prepaymentInput, setPrepaymentInput] = useState('');
   const [discountInput, setDiscountInput] = useState('');
-  const [expenseAmountInput, setExpenseAmountInput] = useState('');
-  const [expenseNote, setExpenseNote] = useState('');
   const [assignedDesigner, setAssignedDesigner] = useState('');
   const [assignedMaster, setAssignedMaster] = useState('');
   const [assignedAssistant, setAssignedAssistant] = useState('');
@@ -293,8 +291,6 @@ export default function OrderCreate() {
           setClientType(editOrder.client_type || 'retail');
           setPrepaymentInput(editOrder.prepayment_amount ? String(editOrder.prepayment_amount) : '');
           setDiscountInput(editOrder.discount_amount ? String(editOrder.discount_amount) : '');
-          setExpenseAmountInput(editOrder.extra_expense_amount ? String(editOrder.extra_expense_amount) : '');
-          setExpenseNote(editOrder.extra_expense_note || '');
           setDeadline(editOrder.deadline || '');
           setNotes(editOrder.notes || '');
           setAssignedDesigner(editOrder.assigned_designer ? String(editOrder.assigned_designer) : '');
@@ -353,7 +349,6 @@ export default function OrderCreate() {
 
   const parsedPrepayment = parsePrepayment(prepaymentInput);
   const parsedDiscount = parsePrepayment(discountInput);
-  const parsedExpenseAmount = parsePrepayment(expenseAmountInput);
   const safePrepayment = Number.isFinite(parsedPrepayment) && parsedPrepayment > 0 ? parsedPrepayment : 0;
   const safeDiscount = Number.isFinite(parsedDiscount) && parsedDiscount > 0 ? parsedDiscount : 0;
   const payableAmount = Math.max(total - safeDiscount, 0);
@@ -435,21 +430,12 @@ export default function OrderCreate() {
       if (parsedPrepayment > payableAmount) {
         throw new Error('Предоплата не может быть больше суммы к оплате');
       }
-      if (!Number.isFinite(parsedExpenseAmount) || parsedExpenseAmount < 0) {
-        throw new Error('Расход должен быть числом не меньше 0');
-      }
-      if (parsedExpenseAmount > 0 && !expenseNote.trim()) {
-        throw new Error('Укажите комментарий к расходу');
-      }
-
       const order = {
         client_name: form.client_name.value.trim(),
         client_phone: form.client_phone.value.trim(),
         client_type: clientType,
         prepayment_amount: parsedPrepayment,
         discount_amount: parsedDiscount,
-        extra_expense_amount: parsedExpenseAmount,
-        extra_expense_note: expenseNote.trim(),
         items: payloadItems,
         notes: form.notes.value.trim(),
         deadline: form.deadline.value || null,
@@ -704,33 +690,6 @@ export default function OrderCreate() {
                       name="deadline"
                       value={deadline}
                       onChange={(event) => setDeadline(event.target.value)}
-                    />
-                  </label>
-
-                  <label className="order-create-field">
-                    <span className="input-label">Расход, сом</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      inputMode="decimal"
-                      className="input"
-                      name="extra_expense_amount"
-                      value={expenseAmountInput}
-                      onChange={(event) => setExpenseAmountInput(event.target.value)}
-                      placeholder="0"
-                    />
-                  </label>
-
-                  <label className="order-create-field">
-                    <span className="input-label">Комментарий к расходу</span>
-                    <input
-                      type="text"
-                      className="input"
-                      name="extra_expense_note"
-                      value={expenseNote}
-                      onChange={(event) => setExpenseNote(event.target.value)}
-                      placeholder="Например: доставка, срочная закупка"
                     />
                   </label>
 

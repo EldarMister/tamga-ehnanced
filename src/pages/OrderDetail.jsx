@@ -230,8 +230,6 @@ export default function OrderDetail() {
   const items = Array.isArray(order.items) ? order.items : [];
   const prepaymentAmount = Number(order.prepayment_amount || 0);
   const discountAmount = Number(order.discount_amount || 0);
-  const extraExpenseAmount = Number(order.extra_expense_amount || 0);
-  const extraExpenseNote = String(order.extra_expense_note || '').trim();
   const payableAmount = Number.isFinite(Number(order.payable_amount))
     ? Number(order.payable_amount)
     : Math.max(Number(order.total_price || 0) - discountAmount, 0);
@@ -240,7 +238,6 @@ export default function OrderDetail() {
     : Math.max(payableAmount - prepaymentAmount, 0);
   const showPrepayment = prepaymentAmount > 0;
   const showDiscount = discountAmount > 0;
-  const showExtraExpense = extraExpenseAmount > 0 || extraExpenseNote;
   const clientType = clientTypeLabel(order.client_type);
   const notes = String(order.notes || '').trim();
   const history = Array.isArray(order.history) ? order.history : [];
@@ -490,15 +487,9 @@ export default function OrderDetail() {
                     <span className="order-detail-finance-label">Себестоимость</span>
                     <strong>{formatCurrency(order.material_cost, lang)}</strong>
                   </div>
-                  {showExtraExpense ? (
-                    <div className="order-detail-finance-card order-detail-finance-card-expense">
-                      <span className="order-detail-finance-label">Расходы</span>
-                      <strong>{formatCurrency(extraExpenseAmount, lang)}</strong>
-                    </div>
-                  ) : null}
                   <div className="order-detail-finance-card order-detail-finance-card-profit">
                     <span className="order-detail-finance-label">Прибыль</span>
-                    <strong>{formatCurrency(payableAmount - Number(order.material_cost || 0) - extraExpenseAmount, lang)}</strong>
+                    <strong>{formatCurrency(payableAmount - Number(order.material_cost || 0), lang)}</strong>
                   </div>
                 </div>
               )}
@@ -563,17 +554,6 @@ export default function OrderDetail() {
                   <span>Создан</span>
                   <strong>{formatDateTime(order.created_at, lang)}</strong>
                 </div>
-                {showExtraExpense ? (
-                  <>
-                    <div className="order-detail-info-row">
-                      <span>Расход</span>
-                      <strong>{formatCurrency(extraExpenseAmount, lang)}</strong>
-                    </div>
-                    {extraExpenseNote ? (
-                      <div className="order-detail-note-box">Расход: {extraExpenseNote}</div>
-                    ) : null}
-                  </>
-                ) : null}
                 {notes ? (
                   <div className="order-detail-note-box">{notes}</div>
                 ) : null}

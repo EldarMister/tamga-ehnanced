@@ -39,8 +39,7 @@ function calcItemTotal(unit, unitPrice, quantity, width, height) {
 }
 
 const ORDER_COLS = `id, order_number, client_name, client_phone, client_type, status,
-  total_price, prepayment_amount, discount_amount, material_cost, extra_expense_amount, extra_expense_note,
-  notes, design_file, photo_file,
+  total_price, prepayment_amount, discount_amount, material_cost, notes, design_file, photo_file,
   CASE WHEN photo_file IS NOT NULL AND TRIM(photo_file) <> '' THEN 1 ELSE 0 END AS has_photo,
   assigned_designer, assigned_master, assigned_assistant, deadline,
   created_by, created_at, updated_at`;
@@ -50,7 +49,6 @@ function serializeOrder(row, opts = {}) {
   const o = { ...row };
   o.prepayment_amount = Number(o.prepayment_amount || 0);
   o.discount_amount = Number(o.discount_amount || 0);
-  o.extra_expense_amount = Number(o.extra_expense_amount || 0);
   o.payable_amount = Math.max(Number(o.total_price || 0) - o.discount_amount, 0);
   o.remaining_amount = Math.max(o.payable_amount - o.prepayment_amount, 0);
   const hasPhoto = !!o.has_photo || (o.photo_file && String(o.photo_file).trim());
@@ -84,16 +82,6 @@ function parseDiscountAmount(rawValue, totalPrice) {
   }
   if (value > Number(totalPrice || 0)) {
     const err = new Error('Скидка не может быть больше суммы заказа');
-    err.statusCode = 400;
-    throw err;
-  }
-  return Math.round(value * 100) / 100;
-}
-
-function parseExpenseAmount(rawValue) {
-  const value = rawValue === '' || rawValue == null ? 0 : Number(rawValue);
-  if (!Number.isFinite(value) || value < 0) {
-    const err = new Error('Расход должен быть числом не меньше 0');
     err.statusCode = 400;
     throw err;
   }
@@ -161,7 +149,7 @@ router.get('/', authRequired, async (req, res) => {
 
   const where = conditions.join(' AND ');
   const orders = await all(
-    `SELECT ${ORDER_COLS.replace(/(\bid\b|order_number|client_name|client_phone|client_type|status|total_price|prepayment_amount|discount_amount|material_cost|extra_expense_amount|extra_expense_note|notes|design_file|photo_file|assigned_designer|assigned_master|assigned_assistant|deadline|created_by|created_at|updated_at)/g, 'o.$1')} FROM orders o WHERE ${where} ORDER BY o.created_at DESC LIMIT ? OFFSET ?`,
+    `SELECT ${ORDER_COLS.replace(/(\bid\b|order_number|client_name|client_phone|client_type|status|total_price|prepayment_amount|discount_amount|material_cost|notes|design_file|photo_file|assigned_designer|assigned_master|assigned_assistant|deadline|created_by|created_at|updated_at)/g, 'o.$1')} FROM orders o WHERE ${where} ORDER BY o.created_at DESC LIMIT ? OFFSET ?`,
     [...params, limit, offset],
   );
   const countRow = await one(`SELECT COUNT(*)::int AS n FROM orders o WHERE ${where}`, params);
@@ -289,15 +277,13 @@ router.post('/', authRequired, roleRequired('manager', 'director'), async (req, 
     const discountAmount = parseDiscountAmount(data.discount_amount, totalPrice);
     const payableAmount = Math.max(totalPrice - discountAmount, 0);
     const prepaymentAmount = parsePrepaymentAmount(data.prepayment_amount, payableAmount);
-    const extraExpenseAmount = parseExpenseAmount(data.extra_expense_amount);
 
     const ins = await client.query(
       `INSERT INTO orders (order_number, client_name, client_phone, client_type, total_price, prepayment_amount, discount_amount,
-         material_cost, extra_expense_amount, extra_expense_note, notes, deadline, assigned_designer, assigned_master, assigned_assistant, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
+         material_cost, notes, deadline, assigned_designer, assigned_master, assigned_assistant, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
       [orderNumber, data.client_name, data.client_phone || '', data.client_type || 'retail',
-       totalPrice, prepaymentAmount, discountAmount, materialCost, extraExpenseAmount, data.extra_expense_note || '',
-       data.notes || '', data.deadline || null,
+       totalPrice, prepaymentAmount, discountAmount, materialCost, data.notes || '', data.deadline || null,
        data.assigned_designer || null, data.assigned_master || null, data.assigned_assistant || null, req.user.id],
     );
     const orderId = ins.rows[0].id;
@@ -422,7 +408,6 @@ router.put('/:id', authRequired, roleRequired('manager', 'director'), async (req
       const discountAmount = parseDiscountAmount(data.discount_amount ?? current.discount_amount, totalPrice);
       const payableAmount = Math.max(totalPrice - discountAmount, 0);
       const prepaymentAmount = parsePrepaymentAmount(data.prepayment_amount ?? current.prepayment_amount, payableAmount);
-      const extraExpenseAmount = parseExpenseAmount(data.extra_expense_amount ?? current.extra_expense_amount);
 
       await client.query('DELETE FROM order_items WHERE order_id = $1', [id]);
       for (const it of itemsData) {
@@ -442,10 +427,9 @@ router.put('/:id', authRequired, roleRequired('manager', 'director'), async (req
 
       await client.query(
         `UPDATE orders SET client_name = $1, client_phone = $2, client_type = $3, total_price = $4,
-           prepayment_amount = $5, discount_amount = $6, material_cost = $7, extra_expense_amount = $8,
-           extra_expense_note = $9, notes = $10, deadline = $11, assigned_designer = $12,
-           assigned_master = $13, assigned_assistant = $14, updated_at = CURRENT_TIMESTAMP
-         WHERE id = $15`,
+           prepayment_amount = $5, discount_amount = $6, material_cost = $7, notes = $8, deadline = $9,
+           assigned_designer = $10, assigned_master = $11, assigned_assistant = $12, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $13`,
         [
           data.client_name ?? current.client_name,
           data.client_phone ?? current.client_phone ?? '',
@@ -454,8 +438,6 @@ router.put('/:id', authRequired, roleRequired('manager', 'director'), async (req
           prepaymentAmount,
           discountAmount,
           materialCost,
-          extraExpenseAmount,
-          data.extra_expense_note ?? current.extra_expense_note ?? '',
           data.notes ?? current.notes ?? '',
           data.deadline || null,
           data.assigned_designer || null,
@@ -482,7 +464,7 @@ router.put('/:id', authRequired, roleRequired('manager', 'director'), async (req
     }
   }
 
-  const allowed = ['client_name','client_phone','notes','deadline','assigned_designer','assigned_master','assigned_assistant','prepayment_amount','discount_amount','extra_expense_amount','extra_expense_note'];
+  const allowed = ['client_name','client_phone','notes','deadline','assigned_designer','assigned_master','assigned_assistant','prepayment_amount','discount_amount'];
   const updates = {};
   for (const k of allowed) if (k in req.body) updates[k] = req.body[k];
   if ('discount_amount' in updates) {
@@ -494,9 +476,6 @@ router.put('/:id', authRequired, roleRequired('manager', 'director'), async (req
     updates.prepayment_amount = parsePrepaymentAmount(updates.prepayment_amount, payableAmount);
   } else {
     parsePrepaymentAmount(order.prepayment_amount, payableAmount);
-  }
-  if ('extra_expense_amount' in updates) {
-    updates.extra_expense_amount = parseExpenseAmount(updates.extra_expense_amount);
   }
   if (Object.keys(updates).length === 0) return res.json(serializeOrder(order));
 

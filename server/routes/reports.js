@@ -25,15 +25,21 @@ router.get('/orders-summary', authRequired, roleRequired('director', 'manager'),
   const totals = await one(
     `SELECT COUNT(*)::int AS total_orders,
             COALESCE(SUM(total_price - discount_amount), 0) AS total_revenue,
-            COALESCE(SUM(material_cost), 0) AS total_cost,
-            COALESCE(SUM(extra_expense_amount), 0) AS extra_expenses
+            COALESCE(SUM(material_cost), 0) AS total_cost
      FROM orders WHERE ${where} AND status != 'cancelled'`,
     dc.params,
   );
+  const expenseDc = dateConditions('expense_date', date_from, date_to);
+  const expenseWhere = ['1=1', ...expenseDc.conditions].join(' AND ');
+  const expenseTotals = await one(
+    `SELECT COALESCE(SUM(amount), 0) AS extra_expenses FROM daily_expenses WHERE ${expenseWhere}`,
+    expenseDc.params,
+  );
+  const extraExpenses = Number(expenseTotals?.extra_expenses || 0);
   res.json({
     by_status: byStatus,
-    totals: totals || { total_orders: 0, total_revenue: 0, total_cost: 0, extra_expenses: 0 },
-    profit: totals ? Number(totals.total_revenue) - Number(totals.total_cost) - Number(totals.extra_expenses || 0) : 0,
+    totals: { ...(totals || { total_orders: 0, total_revenue: 0, total_cost: 0 }), extra_expenses: extraExpenses },
+    profit: totals ? Number(totals.total_revenue) - Number(totals.total_cost) - extraExpenses : 0,
   });
 });
 
@@ -92,10 +98,16 @@ async function buildFinanceData(date_from, date_to) {
   const totals = await one(
     `SELECT COUNT(*)::int AS orders_count,
             COALESCE(SUM(total_price - discount_amount), 0) AS revenue,
-            COALESCE(SUM(material_cost), 0) AS material_cost,
-            COALESCE(SUM(extra_expense_amount), 0) AS extra_expenses
+            COALESCE(SUM(material_cost), 0) AS material_cost
      FROM orders WHERE ${where}`,
     dc.params,
+  );
+
+  const expenseDc = dateConditions('expense_date', date_from, date_to);
+  const expenseWhere = ['1=1', ...expenseDc.conditions].join(' AND ');
+  const expenseTotals = await one(
+    `SELECT COALESCE(SUM(amount), 0) AS extra_expenses FROM daily_expenses WHERE ${expenseWhere}`,
+    expenseDc.params,
   );
 
   const penC = [];
@@ -118,17 +130,39 @@ async function buildFinanceData(date_from, date_to) {
     payP,
   );
 
-  const daily = await all(
+  const orderDaily = await all(
     `SELECT DATE(created_at)::text AS day,
             COUNT(*)::int AS orders_count,
             COALESCE(SUM(total_price - discount_amount), 0) AS revenue,
-            COALESCE(SUM(material_cost + extra_expense_amount), 0) AS cost
+            COALESCE(SUM(material_cost), 0) AS cost
      FROM orders WHERE ${where}
      GROUP BY DATE(created_at)
      ORDER BY day DESC
      LIMIT 31`,
     dc.params,
   );
+  const expenseDaily = await all(
+    `SELECT expense_date AS day,
+            COALESCE(SUM(amount), 0) AS extra_cost
+     FROM daily_expenses WHERE ${expenseWhere}
+     GROUP BY expense_date`,
+    expenseDc.params,
+  );
+  const dailyMap = new Map();
+  for (const row of orderDaily) {
+    dailyMap.set(row.day, {
+      ...row,
+      orders_count: Number(row.orders_count || 0),
+      revenue: Number(row.revenue || 0),
+      cost: Number(row.cost || 0),
+    });
+  }
+  for (const row of expenseDaily) {
+    const current = dailyMap.get(row.day) || { day: row.day, orders_count: 0, revenue: 0, cost: 0 };
+    current.cost = Number(current.cost || 0) + Number(row.extra_cost || 0);
+    dailyMap.set(row.day, current);
+  }
+  const daily = [...dailyMap.values()].sort((a, b) => String(b.day).localeCompare(String(a.day))).slice(0, 31);
 
   const topServicesParts = ["o.status != 'cancelled'"];
   const topServicesParams = [];
@@ -148,7 +182,7 @@ async function buildFinanceData(date_from, date_to) {
 
   const revenue = Number(totals?.revenue || 0);
   const materialCost = Number(totals?.material_cost || 0);
-  const extraExpenses = Number(totals?.extra_expenses || 0);
+  const extraExpenses = Number(expenseTotals?.extra_expenses || 0);
   const payrollSum = Number(payrollTotal?.total_payroll || 0);
   const penaltiesSum = Number(penalties?.total_penalties || 0);
 

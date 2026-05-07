@@ -69,8 +69,6 @@ CREATE TABLE IF NOT EXISTS orders (
     prepayment_amount   REAL    NOT NULL DEFAULT 0,
     discount_amount     REAL    NOT NULL DEFAULT 0,
     material_cost       REAL    NOT NULL DEFAULT 0,
-    extra_expense_amount REAL   NOT NULL DEFAULT 0,
-    extra_expense_note  TEXT,
     notes               TEXT,
     design_file         TEXT,
     photo_file          TEXT,
@@ -139,6 +137,15 @@ CREATE TABLE IF NOT EXISTS incidents (
     material_waste REAL,
     deduction_amount REAL,
     status        TEXT    NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','reviewed')),
+    created_by    INTEGER NOT NULL REFERENCES users(id),
+    created_at    TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS daily_expenses (
+    id            SERIAL PRIMARY KEY,
+    expense_date  TEXT    NOT NULL DEFAULT CURRENT_DATE,
+    amount        REAL    NOT NULL CHECK(amount >= 0),
+    note          TEXT    NOT NULL,
     created_by    INTEGER NOT NULL REFERENCES users(id),
     created_at    TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

@@ -3,7 +3,7 @@ import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { useModal } from '../components/Modal.jsx';
-import { formatTime, formatDateTime, roleLabel } from '../lib/utils.js';
+import { formatCurrency, formatTime, formatDateTime, roleLabel } from '../lib/utils.js';
 import { useRealtime } from '../lib/useRealtime.js';
 
 const TYPE_LABELS = {
@@ -67,16 +67,25 @@ function parseTs(value) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function localDateInput() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function HR() {
   const { user, lang } = useAuth();
   const showToast = useToast();
-  const { showForm } = useModal();
+  const { showConfirm, showForm } = useModal();
   const isManager = ['director', 'manager'].includes(user.role);
 
   const [attendance, setAttendance] = useState(undefined);
   const [shiftTasks, setShiftTasks] = useState(null);
   const [today, setToday] = useState(null);
   const [incidents, setIncidents] = useState(null);
+  const [expenses, setExpenses] = useState(null);
   const [now, setNow] = useState(Date.now());
 
   const loadShift = useCallback(async () => {
@@ -119,13 +128,25 @@ export default function HR() {
     }
   }, []);
 
+  const loadExpenses = useCallback(async () => {
+    try {
+      const date = localDateInput();
+      api.clearCache('/api/hr/expenses');
+      const list = await api.get(`/api/hr/expenses?date_from=${date}&date_to=${date}`);
+      setExpenses(list || []);
+    } catch {
+      setExpenses([]);
+    }
+  }, []);
+
   useEffect(() => {
     loadShift();
     if (isManager) {
       loadToday();
       loadIncidents();
+      loadExpenses();
     }
-  }, [isManager, loadShift, loadToday, loadIncidents]);
+  }, [isManager, loadShift, loadToday, loadIncidents, loadExpenses]);
 
   useEffect(() => {
     if (attendance && !attendance.check_out) loadShiftTasks();
@@ -145,6 +166,10 @@ export default function HR() {
   useRealtime('hr:incident', useCallback(() => {
     if (isManager) loadIncidents();
   }, [loadIncidents, isManager]));
+
+  useRealtime('hr:expense', useCallback(() => {
+    if (isManager) loadExpenses();
+  }, [loadExpenses, isManager]));
 
   const checkin = async () => {
     try {
@@ -204,6 +229,45 @@ export default function HR() {
           });
           showToast('Инцидент создан', 'success');
           loadIncidents();
+        } catch {}
+      },
+    });
+  };
+
+  const showExpense = () => {
+    showForm({
+      title: 'Новый расход',
+      fields: [
+        { name: 'expense_date', label: 'Дата', type: 'date', value: localDateInput(), required: true },
+        { name: 'amount', label: 'Сумма', type: 'number', step: '1', required: true, placeholder: '0' },
+        { name: 'note', label: 'Комментарий', type: 'textarea', required: true, placeholder: 'Например: доставка, бензин, обед' },
+      ],
+      submitText: 'Добавить расход',
+      onSubmit: async (data) => {
+        try {
+          await api.post('/api/hr/expenses', {
+            expense_date: data.expense_date || localDateInput(),
+            amount: parseFloat(data.amount),
+            note: data.note,
+          });
+          showToast('Расход добавлен', 'success');
+          loadExpenses();
+        } catch {}
+      },
+    });
+  };
+
+  const deleteExpense = (expense) => {
+    showConfirm({
+      title: 'Удалить расход',
+      body: `Удалить расход "${expense.note}" на ${formatCurrency(expense.amount, lang)}?`,
+      confirmText: 'Удалить',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/api/hr/expenses/${expense.id}`);
+          showToast('Расход удалён', 'warning');
+          loadExpenses();
         } catch {}
       },
     });
@@ -317,6 +381,39 @@ export default function HR() {
                       )}
                     </div>
                   </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {isManager && (
+          <section className="hr-section hr-expenses-section">
+            <div className="hr-section-head">
+              <h2 className="hr-section-title">Ежедневные расходы</h2>
+              <button className="hr-outline-btn" onClick={showExpense}>+ Расход</button>
+            </div>
+
+            {expenses === null ? (
+              <div className="hr-loading-state"><div className="spinner"></div></div>
+            ) : expenses.length === 0 ? (
+              <div className="hr-empty-row">
+                <div className="hr-empty-icon">{SVG.shield}</div>
+                <div className="hr-empty-text">Сегодня расходов нет</div>
+              </div>
+            ) : (
+              <div className="hr-expenses-list">
+                {expenses.map(expense => (
+                  <article key={expense.id} className="hr-expense-card">
+                    <div className="hr-expense-main">
+                      <strong>{formatCurrency(expense.amount, lang)}</strong>
+                      <p>{expense.note}</p>
+                      <span>{expense.expense_date} • {expense.created_by_name}</span>
+                    </div>
+                    <button type="button" className="hr-expense-delete" onClick={() => deleteExpense(expense)}>
+                      Удалить
+                    </button>
+                  </article>
                 ))}
               </div>
             )}
